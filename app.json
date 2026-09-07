@@ -1,0 +1,35 @@
+{
+  "expo": {
+    "name": "EmlakÇantam",
+    "slug": "emlak-cantam",
+    "scheme": "emlakcantam",
+    "version": "1.0.0",
+    "owner": "canerineci1",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.canerineci.emlakcantam",
+      "infoPlist": {
+        "NSMicrophoneUsageDescription": "Sesli görüşme notu kaydetmek için mikrofon izni gereklidir."
+      }
+    },
+    "android": {
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "RECORD_AUDIO"
+      ]
+    },
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Yer gösterme belgesine GPS doğrulama damgası eklemek için konum izni gereklidir."
+        }
+      ],
+      "expo-audio",
+      "expo-web-browser"
+    ]
+  }
+}
