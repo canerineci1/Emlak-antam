@@ -180,7 +180,7 @@ export const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => 
                 </View>
               </View>
               <Text style={styles.cloudSub}>
-                Proje: {firebaseConfig?.projectId || 'emlakofisim-b5d57'} • {liveFbStatus?.message || 'Firestore ve Auth bulut senkronizasyonu devrede.'}
+                Proje: {firebaseConfig?.projectId || 'emlakcantam1'} • {liveFbStatus?.message || 'Firestore ve Auth bulut senkronizasyonu devrede.'}
               </Text>
             </View>
           </View>
@@ -194,7 +194,7 @@ export const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => 
                   setLiveFbStatus(st);
                   Alert.alert(
                     st.isConnected ? '✅ Firebase Bağlantısı Başarılı' : '⚠️ Bağlantı Notu',
-                    `Proje: emlakofisim-b5d57\n\nFirestore Durumu: ${st.firestoreStatus}\nAuth Durumu: ${st.authStatus}\n\nMesaj: ${st.message}`
+                    `Proje: emlakcantam1\n\nFirestore Durumu: ${st.firestoreStatus}\nAuth Durumu: ${st.authStatus}\n\nMesaj: ${st.message}`
                   );
                 });
               }}

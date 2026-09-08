@@ -392,7 +392,7 @@ export const LoginScreen: React.FC<{ onLoginSuccess?: () => void }> = ({ onLogin
               color={fbStatus?.isConnected ? '#10B981' : '#F59E0B'}
             />
             <Text style={{ fontSize: 12, color: '#94A3B8', marginLeft: 6, fontWeight: '600' }}>
-              Firebase: {fbStatus?.firestoreStatus === 'CONNECTED' ? '🟢 Firestore Aktif' : fbStatus?.isConnected ? '🟡 Proje Bağlı (Rules Bekleniyor)' : '🟢 emlakofisim-b5d57'}
+              Firebase: {fbStatus?.firestoreStatus === 'CONNECTED' ? '🟢 Firestore Aktif' : fbStatus?.isConnected ? '🟡 Proje Bağlı (Rules Bekleniyor)' : '🟢 emlakcantam1'}
             </Text>
           </View>
 

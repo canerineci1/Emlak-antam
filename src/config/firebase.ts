@@ -5,13 +5,12 @@ import { getAuth, initializeAuth, getReactNativePersistence } from 'firebase/aut
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export const defaultFirebaseConfig = {
-  apiKey: "AIzaSyAx6FczK2RKaRqg3W_65bO1Rqc1b4QI8dw",
-  authDomain: "emlakofisim-b5d57.firebaseapp.com",
-  projectId: "emlakofisim-b5d57",
-  storageBucket: "emlakofisim-b5d57.firebasestorage.app",
-  messagingSenderId: "448501546664",
-  appId: "1:448501546664:web:c89f5f218e33c033124c9d",
-  measurementId: "G-YGGFGB96H9"
+  apiKey: "AIzaSyANJGbABLfp2V6F4cpJzaVwnf-YtN1OBnE",
+  authDomain: "emlakcantam1.firebaseapp.com",
+  projectId: "emlakcantam1",
+  storageBucket: "emlakcantam1.firebasestorage.app",
+  messagingSenderId: "emlakcantam1",
+  appId: "1:emlakcantam1:web:emlakcantam1"
 };
 
 let app: any = null;
