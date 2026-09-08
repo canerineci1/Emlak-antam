@@ -21,7 +21,16 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS, SPACING, RADIUS, SHADOWS } from '../constants/theme';
 import { Ionicons } from '@expo/vector-icons';
 import * as WebBrowser from 'expo-web-browser';
-import { loginWithGoogle, loginWithPhone, loginWithEmail, fetchGoogleProfileFromApi, UserRole, GoogleProfileData } from '../services/authService';
+import { WebView } from 'react-native-webview';
+import {
+  loginWithGoogle,
+  loginWithPhone,
+  loginWithEmail,
+  createGoogleAuthUri,
+  parseAuthTokensFromUrl,
+  authenticateWithGoogleIdToken,
+  UserRole
+} from '../services/authService';
 import { checkFirebaseConnection, FirebaseConnectionStatus } from '../config/firebase';
 
 export const LoginScreen: React.FC<{ onLoginSuccess?: () => void }> = ({ onLoginSuccess }) => {
@@ -52,17 +61,11 @@ export const LoginScreen: React.FC<{ onLoginSuccess?: () => void }> = ({ onLogin
   const [sentOtpCode, setSentOtpCode] = useState('');
   const [countdown, setCountdown] = useState(60);
 
-  // Google Dialog State (Gerçek Google API & OAuth)
-  const [showGoogleModal, setShowGoogleModal] = useState(false);
-  const [googleEmail, setGoogleEmail] = useState('');
-  const [googleFullName, setGoogleFullName] = useState('');
-  const [googleAccessToken, setGoogleAccessToken] = useState('');
-  const [googleMode, setGoogleMode] = useState<'ACCOUNT' | 'API_TOKEN'>('ACCOUNT');
-  const [fetchedGoogleProfile, setFetchedGoogleProfile] = useState<GoogleProfileData | null>(null);
-  const [isEditingGoogleAccount, setIsEditingGoogleAccount] = useState(false);
-
+  // Gerçek Google OAuth State (accounts.google.com)
+  const [showGoogleOAuthModal, setShowGoogleOAuthModal] = useState(false);
+  const [googleOAuthUrl, setGoogleOAuthUrl] = useState('');
+  const [isAuthenticatingToken, setIsAuthenticatingToken] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [isFetchingGoogleApi, setIsFetchingGoogleApi] = useState(false);
 
   const otpInputRefs = useRef<(TextInput | null)[]>([]);
 
@@ -111,7 +114,7 @@ export const LoginScreen: React.FC<{ onLoginSuccess?: () => void }> = ({ onLogin
     }
   };
 
-  // GERÇEK GOOGLE GİRİŞİ BAŞLAT (ENTERPRISE ONE-TAP STANDARDI)
+  // GERÇEK GOOGLE GİRİŞİ BAŞLAT (ACCOUNTS.GOOGLE.COM CANLI OAUTH)
   const handleStartGoogle = async () => {
     // 1. Web ortamında doğrudan resmi Google OAuth Popup'ını aç
     if (Platform.OS === 'web') {
@@ -136,81 +139,45 @@ export const LoginScreen: React.FC<{ onLoginSuccess?: () => void }> = ({ onLogin
       return;
     }
 
-    // 2. Mobil Expo Go ortamında: Kurumsal Google One-Tap hesap onay penceresini aç
-    if (!googleEmail) {
-      setGoogleEmail('canerineci1@gmail.com');
-      setGoogleFullName('Caner İneci');
-    }
-    setShowGoogleModal(true);
-  };
-
-  // GOOGLE OAUTH WEB TARAYICISI AÇ
-  const handleOpenGoogleWeb = async () => {
-    try {
-      await WebBrowser.openBrowserAsync('https://accounts.google.com');
-    } catch (e) {
-      Alert.alert('Bilgi', 'Tarayıcı açılamadı.');
-    }
-  };
-
-  // CANLI GOOGLE USERINFO API SORGULA
-  const handleFetchGoogleApi = async () => {
-    const token = googleAccessToken.trim();
-    if (!token) {
-      Alert.alert('Eksik Token', 'Lütfen Google Cloud veya OAuth üzerinden aldığınız Access Token kodunu giriniz.');
-      return;
-    }
-
-    setIsFetchingGoogleApi(true);
-    try {
-      const profile = await fetchGoogleProfileFromApi(token);
-      if (profile) {
-        setFetchedGoogleProfile(profile);
-        setGoogleEmail(profile.email);
-        setGoogleFullName(profile.name);
-        Alert.alert('✅ Google API Doğrulandı', `Hoş geldiniz, ${profile.name}! Google API üzerinden gerçek profiliniz başarıyla çekildi.`);
-      } else {
-        Alert.alert('Hata', 'Google API token geçersiz veya süresi dolmuş. Lütfen tokenınızı kontrol ediniz.');
-      }
-    } catch (e: any) {
-      Alert.alert('API Hatası', e.message || 'Google API sunucularına bağlanılamadı.');
-    } finally {
-      setIsFetchingGoogleApi(false);
-    }
-  };
-
-  // GOOGLE İLE GİRİŞİ ONAYLA (GERÇEK VERİ & FIRESTORE)
-  const handleConfirmGoogleLogin = async () => {
-    const email = (googleEmail || '').trim();
-    const name = (googleFullName || '').trim();
-
-    if (!email) {
-      Alert.alert('Eksik Bilgi', 'Lütfen geçerli bir Google e-posta adresi giriniz.');
-      return;
-    }
-
-    if (!email.includes('@') || !email.includes('.')) {
-      Alert.alert('Geçersiz E-posta', 'Lütfen geçerli bir e-posta formatı giriniz (Örn: ad.soyad@gmail.com).');
-      return;
-    }
-
+    // 2. Mobil Expo Go ortamında: Canlı Google OAuth Bağlantısını Al ve Resmi Google Penceresini Aç
     setIsLoading(true);
     try {
-      await loginWithGoogle(selectedRole, {
-        email,
-        name: name || undefined,
-        id: fetchedGoogleProfile?.id,
-        avatarUrl: fetchedGoogleProfile?.avatarUrl,
-        accessToken: googleAccessToken.trim() || undefined
-      });
-
-      setShowGoogleModal(false);
-      Alert.alert('✅ Giriş Başarılı', 'Google profiliniz Firebase veri tabanına başarıyla kaydedildi.');
-      if (onLoginSuccess) onLoginSuccess();
+      const { authUri } = await createGoogleAuthUri();
+      setGoogleOAuthUrl(authUri);
+      setShowGoogleOAuthModal(true);
     } catch (e: any) {
-      Alert.alert('Giriş Hatası', e.message || 'Giriş yapılamadı.');
+      Alert.alert('Google Bağlantı Hatası', e.message || 'Google sunucusuna bağlanılamadı. Lütfen internetinizi kontrol ediniz.');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // GERÇEK GOOGLE OAUTH YÖNLENDİRMESİNİ DİNLE VE TOKENLARI YAKALA
+  const handleGoogleNavChange = async (navState: any) => {
+    const url = navState.url || '';
+    if (
+      url.includes('emlakcantam1.firebaseapp.com/__/auth/handler') ||
+      url.includes('id_token=') ||
+      url.includes('access_token=')
+    ) {
+      const { idToken, accessToken } = parseAuthTokensFromUrl(url);
+      if (idToken && !isAuthenticatingToken) {
+        setIsAuthenticatingToken(true);
+        try {
+          const user = await authenticateWithGoogleIdToken(idToken, selectedRole, accessToken);
+          setShowGoogleOAuthModal(false);
+          Alert.alert(
+            '✅ Giriş Başarılı',
+            `Hoş geldiniz, ${user.name}!\nGoogle hesabınız (${user.email}) doğrulandı ve Firebase veri tabanınıza kaydedildi.`
+          );
+          if (onLoginSuccess) onLoginSuccess();
+        } catch (e: any) {
+          Alert.alert('Google Doğrulama Hatası', e.message || 'Google hesabı doğrulanamadı.');
+          setShowGoogleOAuthModal(false);
+        } finally {
+          setIsAuthenticatingToken(false);
+        }
+      }
     }
   };
 
@@ -643,131 +610,56 @@ export const LoginScreen: React.FC<{ onLoginSuccess?: () => void }> = ({ onLogin
         </ScrollView>
       </KeyboardAvoidingView>
 
-      {/* KURUMSAL GOOGLE ONE-TAP OTURUM AÇMA MODALI */}
-      <Modal visible={showGoogleModal} animationType="slide" transparent>
-        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-          <View style={styles.modalDarkOverlay}>
-            <KeyboardAvoidingView
-              behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-              style={{ width: '100%', alignItems: 'center' }}
+      {/* RESMİ GOOGLE OAUTH OTURUM AÇMA PENCERESİ (ACCOUNTS.GOOGLE.COM) */}
+      <Modal
+        visible={showGoogleOAuthModal}
+        animationType="slide"
+        presentationStyle="fullScreen"
+        onRequestClose={() => setShowGoogleOAuthModal(false)}
+      >
+        <SafeAreaView style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
+          {/* Resmi Google Tarayıcı Üst Çubuğu */}
+          <View style={styles.googleOAuthBar}>
+            <TouchableOpacity
+              onPress={() => setShowGoogleOAuthModal(false)}
+              style={styles.googleOAuthCancelBtn}
             >
-              <View style={[styles.modernSheetModal, { maxWidth: isTablet ? 500 : '100%' }]}>
-                <View style={styles.sheetHandle} />
-
-                {/* Google Resmi Başlık */}
-                <View style={styles.sheetHeader}>
-                  <View style={styles.googleBrandBadge}>
-                    <Ionicons name="logo-google" size={22} color="#EA4335" />
-                  </View>
-                  <View style={{ flex: 1, marginLeft: 12 }}>
-                    <Text style={styles.sheetTitle}>Google ile Oturum Aç</Text>
-                    <Text style={styles.sheetSub}>EmlakÇantam kurumsal hesabınıza bağlanın</Text>
-                  </View>
-                  <TouchableOpacity onPress={() => setShowGoogleModal(false)} style={styles.closeBtn}>
-                    <Ionicons name="close" size={20} color={COLORS.text} />
-                  </TouchableOpacity>
-                </View>
-
-                {/* Seçili Google Hesabı Kartı (Google One-Tap Standart) */}
-                <TouchableOpacity
-                  activeOpacity={0.85}
-                  onPress={() => setIsEditingGoogleAccount(!isEditingGoogleAccount)}
-                  style={styles.googleAccountSelectedCard}
-                >
-                  <View style={styles.googleAvatarCircle}>
-                    <Text style={styles.googleAvatarText}>
-                      {(googleFullName || googleEmail || 'C').charAt(0).toUpperCase()}
-                    </Text>
-                  </View>
-                  <View style={{ flex: 1, marginLeft: 12 }}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                      <Text style={styles.googleAccountNameText} numberOfLines={1}>
-                        {googleFullName || 'Caner İneci'}
-                      </Text>
-                      <Ionicons name="checkmark-circle" size={15} color="#059669" />
-                    </View>
-                    <Text style={styles.googleAccountEmailText} numberOfLines={1}>
-                      {googleEmail || 'canerineci1@gmail.com'}
-                    </Text>
-                    <Text style={styles.googleAccountBadgeText}>✓ Doğrulanmış Google Hesabı</Text>
-                  </View>
-                  <Ionicons
-                    name={isEditingGoogleAccount ? "chevron-up" : "create-outline"}
-                    size={18}
-                    color={COLORS.textSecondary}
-                  />
-                </TouchableOpacity>
-
-                {/* Hesap Detayları / Düzenleme (Açılır Kapanır) */}
-                {isEditingGoogleAccount && (
-                  <View style={styles.sheetInputGroup}>
-                    <Text style={styles.modernInputLabel}>GMAIL E-POSTA ADRESİ *</Text>
-                    <View style={styles.modernInputContainer}>
-                      <Ionicons name="mail-outline" size={17} color={COLORS.textSecondary} style={{ marginRight: 8 }} />
-                      <TextInput
-                        style={styles.modernInput}
-                        value={googleEmail}
-                        onChangeText={setGoogleEmail}
-                        placeholder="canerineci1@gmail.com"
-                        placeholderTextColor={COLORS.textMuted}
-                        keyboardType="email-address"
-                        autoCapitalize="none"
-                      />
-                    </View>
-
-                    <Text style={styles.modernInputLabel}>GÖRÜNECEK AD SOYAD</Text>
-                    <View style={styles.modernInputContainer}>
-                      <Ionicons name="person-outline" size={17} color={COLORS.textSecondary} style={{ marginRight: 8 }} />
-                      <TextInput
-                        style={styles.modernInput}
-                        value={googleFullName}
-                        onChangeText={setGoogleFullName}
-                        placeholder="Caner İneci"
-                        placeholderTextColor={COLORS.textMuted}
-                      />
-                    </View>
-                  </View>
-                )}
-
-                {/* Rol Yetki Rozeti */}
-                <View style={styles.sheetRoleNotice}>
-                  <Ionicons name="shield-checkmark" size={16} color={COLORS.primary} />
-                  <Text style={styles.sheetRoleNoticeText}>
-                    Yetki Kapsamı:{' '}
-                    <Text style={{ fontWeight: '800' }}>
-                      {selectedRole === 'YONETICI' ? '🏢 Ofis Sahibi / Broker' : '👤 Saha Danışmanı'}
-                    </Text>
-                  </Text>
-                </View>
-
-                {/* Google Olarak Devam Et Butonu */}
-                <TouchableOpacity
-                  activeOpacity={0.88}
-                  style={styles.googleEnterpriseConfirmBtn}
-                  onPress={handleConfirmGoogleLogin}
-                  disabled={isLoading}
-                >
-                  {isLoading ? (
-                    <ActivityIndicator color="#FFFFFF" size="small" />
-                  ) : (
-                    <>
-                      <Ionicons name="logo-google" size={18} color="#FFFFFF" />
-                      <Text style={styles.googleEnterpriseConfirmBtnText}>
-                        {googleFullName ? `${googleFullName} Olarak Devam Et` : 'Google ile Devam Et'}
-                      </Text>
-                      <Ionicons name="arrow-forward" size={16} color="#FFFFFF" />
-                    </>
-                  )}
-                </TouchableOpacity>
-
-                {/* Güvenlik ve Gizlilik */}
-                <Text style={styles.googleEnterpriseFooterNote}>
-                  🔒 Google Identity & Firebase Cloud Firestore ile uçtan uca şifrelenir.
-                </Text>
+              <Ionicons name="close" size={22} color={COLORS.text} />
+            </TouchableOpacity>
+            <View style={styles.googleOAuthTitleGroup}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                <Ionicons name="lock-closed" size={12} color="#059669" />
+                <Text style={styles.googleOAuthUrlText}>accounts.google.com</Text>
               </View>
-            </KeyboardAvoidingView>
+              <Text style={styles.googleOAuthBrandText}>Google ile Güvenli Giriş</Text>
+            </View>
+            <View style={{ width: 38 }} />
           </View>
-        </TouchableWithoutFeedback>
+
+          {isAuthenticatingToken ? (
+            <View style={styles.googleAuthLoadingBox}>
+              <ActivityIndicator size="large" color="#4285F4" />
+              <Text style={styles.googleAuthLoadingText}>Google Hesabınız Doğrulanıyor...</Text>
+              <Text style={styles.googleAuthLoadingSub}>Firebase veritabanınıza bağlanılıyor</Text>
+            </View>
+          ) : googleOAuthUrl ? (
+            <WebView
+              source={{ uri: googleOAuthUrl }}
+              userAgent="Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Mobile/15E148 Safari/604.1"
+              onNavigationStateChange={handleGoogleNavChange}
+              startInLoadingState
+              renderLoading={() => (
+                <View style={styles.googleAuthLoadingBox}>
+                  <ActivityIndicator size="large" color="#4285F4" />
+                  <Text style={styles.googleAuthLoadingText}>Google Giriş Sayfası Yükleniyor...</Text>
+                </View>
+              )}
+              javaScriptEnabled
+              domStorageEnabled
+              sharedCookiesEnabled
+            />
+          ) : null}
+        </SafeAreaView>
       </Modal>
 
       {/* SMS DOĞRULAMA MODALI (RESPONSIVE 6 HANELİ PIN HÜCRELERİ) */}
@@ -1458,27 +1350,54 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     marginTop: 3,
   },
-  googleEnterpriseConfirmBtn: {
-    backgroundColor: '#4285F4',
-    borderRadius: RADIUS.lg,
-    paddingVertical: 14,
+  googleOAuthBar: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: SPACING.md,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
+    backgroundColor: '#F8FAFC',
+  },
+  googleOAuthCancelBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#EDF2F7',
+    alignItems: 'center',
     justifyContent: 'center',
-    gap: 10,
-    marginTop: 4,
-    marginBottom: 8,
-    ...SHADOWS.md,
   },
-  googleEnterpriseConfirmBtnText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '800',
+  googleOAuthTitleGroup: {
+    alignItems: 'center',
   },
-  googleEnterpriseFooterNote: {
+  googleOAuthUrlText: {
     fontSize: 11,
-    color: COLORS.textMuted,
-    textAlign: 'center',
-    marginTop: 8,
+    color: '#059669',
+    fontWeight: '700',
+  },
+  googleOAuthBrandText: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: COLORS.text,
+    marginTop: 2,
+  },
+  googleAuthLoadingBox: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: SPACING.xl,
+    backgroundColor: '#FFFFFF',
+  },
+  googleAuthLoadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    fontWeight: '800',
+    color: COLORS.text,
+  },
+  googleAuthLoadingSub: {
+    marginTop: 6,
+    fontSize: 13,
+    color: COLORS.textSecondary,
   },
 });

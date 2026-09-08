@@ -1,6 +1,6 @@
 import * as FileSystem from 'expo-file-system/legacy';
 import { syncUserToCloud } from './firebaseSyncService';
-import { db, auth, getFirebaseAuth, getFirebaseDb } from '../config/firebase';
+import { db, auth, getFirebaseAuth, getFirebaseDb, defaultFirebaseConfig } from '../config/firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import {
   signInWithCredential,
@@ -218,6 +218,135 @@ export async function fetchGoogleProfileFromApi(accessToken: string): Promise<Go
     console.warn('Google UserInfo API fetch error:', e);
   }
   return null;
+}
+
+// 1. GERÇEK GOOGLE OAUTH URL'SİNİ FIREBASE'DEN AL (CANLI GOOGLE AUTH ENDPOINT)
+export async function createGoogleAuthUri(): Promise<{ authUri: string; sessionId?: string }> {
+  const apiKey = defaultFirebaseConfig.apiKey;
+  const res = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:createAuthUri?key=${apiKey}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      providerId: 'google.com',
+      continueUri: 'https://emlakcantam1.firebaseapp.com/__/auth/handler'
+    })
+  });
+
+  if (!res.ok) {
+    const errText = await res.text();
+    throw new Error(`Google OAuth başlatılamadı: ${errText}`);
+  }
+
+  const data = await res.json();
+  if (!data.authUri) {
+    throw new Error('Google OAuth bağlantı adresi alınamadı.');
+  }
+
+  return {
+    authUri: data.authUri,
+    sessionId: data.sessionId
+  };
+}
+
+// 2. URL'DEN GERÇEK TOKENLARI AYIKLA
+export function parseAuthTokensFromUrl(url: string): { idToken?: string; accessToken?: string } {
+  try {
+    const hashIndex = url.indexOf('#');
+    const queryIndex = url.indexOf('?');
+    const queryString = hashIndex !== -1 ? url.substring(hashIndex + 1) : queryIndex !== -1 ? url.substring(queryIndex + 1) : '';
+    const params = new URLSearchParams(queryString);
+    const idToken = params.get('id_token') || undefined;
+    const accessToken = params.get('access_token') || undefined;
+    return { idToken, accessToken };
+  } catch (e) {
+    console.warn('parseAuthTokensFromUrl error:', e);
+    return {};
+  }
+}
+
+// 3. GERÇEK GOOGLE TOKEN'I İLE OTURUM AÇ VE FIRESTORE'A YAZ
+export async function authenticateWithGoogleIdToken(
+  idToken: string,
+  role: UserRole,
+  accessToken?: string
+): Promise<UserProfile> {
+  const apiKey = defaultFirebaseConfig.apiKey;
+  let uid = '';
+  let email = '';
+  let name = '';
+  let avatarUrl = '';
+
+  // 1. Firebase Identity Toolkit signInWithIdp ile resmi doğrulama
+  try {
+    const idpRes = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signInWithIdp?key=${apiKey}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        postBody: `id_token=${idToken}&providerId=google.com`,
+        requestUri: 'https://emlakcantam1.firebaseapp.com',
+        returnSecureToken: true
+      })
+    });
+    const idpData = await idpRes.json();
+    if (idpData.localId) {
+      uid = idpData.localId;
+      email = idpData.email || '';
+      name = idpData.displayName || '';
+      avatarUrl = idpData.photoUrl || '';
+    }
+  } catch (e) {
+    console.warn('signInWithIdp note:', e);
+  }
+
+  // 2. Firebase SDK Auth signInWithCredential
+  const activeAuth = auth || getFirebaseAuth();
+  if (activeAuth) {
+    try {
+      const credential = GoogleAuthProvider.credential(idToken);
+      const userCred = await signInWithCredential(activeAuth, credential);
+      if (userCred.user) {
+        uid = userCred.user.uid || uid;
+        email = userCred.user.email || email;
+        name = userCred.user.displayName || name;
+        avatarUrl = userCred.user.photoURL || avatarUrl;
+      }
+    } catch (credErr) {
+      console.warn('signInWithCredential note:', credErr);
+    }
+  }
+
+  // 3. Eğer accessToken varsa Google UserInfo API'den profil detaylarını doğrula
+  if (accessToken && (!email || !name)) {
+    const liveProfile = await fetchGoogleProfileFromApi(accessToken);
+    if (liveProfile) {
+      if (!email) email = liveProfile.email;
+      if (!name) name = liveProfile.name;
+      if (!avatarUrl) avatarUrl = liveProfile.avatarUrl || '';
+      if (!uid) uid = liveProfile.id;
+    }
+  }
+
+  if (!email && !uid) {
+    throw new Error('Google hesabı doğrulanamadı. Lütfen tekrar deneyiniz.');
+  }
+
+  const isManager = role === 'YONETICI';
+  const profile: UserProfile = {
+    id: uid || `google_${Date.now()}`,
+    name: name || (email ? email.split('@')[0] : 'Google Kullanıcısı'),
+    email: email,
+    phone: '',
+    role,
+    roleTitle: isManager ? 'Ofis Sahibi & Broker' : 'Gayrimenkul Danışmanı',
+    agencyName: 'EmlakÇantam Gayrimenkul',
+    licenseNumber: '',
+    avatarUrl: avatarUrl || '',
+    isLoggedIn: true,
+    authProvider: 'GOOGLE'
+  };
+
+  await persistAuth(profile);
+  return profile;
 }
 
 // GOOGLE İLE GİRİŞ YAP (GERÇEK GOOGLE OAUTH POPUP & FIREBASE AUTH + FIRESTORE BULUT)
