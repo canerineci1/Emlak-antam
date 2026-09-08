@@ -5,6 +5,19 @@ import * as FileSystem from 'expo-file-system/legacy';
 
 const FIREBASE_CONFIG_FILE = (FileSystem.documentDirectory || '') + 'emlakofisim_firebase_config.json';
 
+// Firestore'un undefined alanlardan dolayı çökmesini engelleyen temizleyici
+export function stripUndefined(obj: any): any {
+  if (!obj || typeof obj !== 'object') return obj;
+  if (Array.isArray(obj)) return obj.map(stripUndefined);
+  const clean: any = {};
+  for (const [key, value] of Object.entries(obj)) {
+    if (value !== undefined) {
+      clean[key] = typeof value === 'object' && value !== null ? stripUndefined(value) : value;
+    }
+  }
+  return clean;
+}
+
 export interface FirebaseCustomConfig {
   apiKey: string;
   authDomain: string;
@@ -62,10 +75,10 @@ export async function syncContractToCloud(contract: any): Promise<boolean> {
   try {
     if (!db || !contract?.id) return false;
     const docRef = doc(collection(db, 'contracts'), contract.id);
-    await setDoc(docRef, {
+    await setDoc(docRef, stripUndefined({
       ...contract,
       updatedAt: new Date().toISOString()
-    }, { merge: true });
+    }), { merge: true });
     return true;
   } catch (e: any) {
     console.warn('Contract cloud sync error:', e);
@@ -90,10 +103,10 @@ export async function syncPropertyToCloud(property: any): Promise<boolean> {
   try {
     if (!db || !property?.id) return false;
     const docRef = doc(collection(db, 'properties'), property.id);
-    await setDoc(docRef, {
+    await setDoc(docRef, stripUndefined({
       ...property,
       updatedAt: new Date().toISOString()
-    }, { merge: true });
+    }), { merge: true });
     return true;
   } catch (e: any) {
     console.warn('Property cloud sync error:', e);
@@ -118,10 +131,10 @@ export async function syncDemandToCloud(demand: any): Promise<boolean> {
   try {
     if (!db || !demand?.id) return false;
     const docRef = doc(collection(db, 'demands'), demand.id);
-    await setDoc(docRef, {
+    await setDoc(docRef, stripUndefined({
       ...demand,
       updatedAt: new Date().toISOString()
-    }, { merge: true });
+    }), { merge: true });
     return true;
   } catch (e: any) {
     console.warn('Demand cloud sync error:', e);
@@ -147,10 +160,10 @@ export async function syncBrokerToCloud(broker: any): Promise<boolean> {
     if (!db) return false;
     const docId = broker?.id || 'broker_profile';
     const docRef = doc(collection(db, 'brokers'), docId);
-    await setDoc(docRef, {
+    await setDoc(docRef, stripUndefined({
       ...broker,
       updatedAt: new Date().toISOString()
-    }, { merge: true });
+    }), { merge: true });
     return true;
   } catch (e: any) {
     console.warn('Broker cloud sync error:', e);
@@ -163,10 +176,10 @@ export async function syncUserToCloud(user: any): Promise<boolean> {
   try {
     if (!db || !user?.id) return false;
     const docRef = doc(collection(db, 'users'), user.id);
-    await setDoc(docRef, {
+    await setDoc(docRef, stripUndefined({
       ...user,
       updatedAt: new Date().toISOString()
-    }, { merge: true });
+    }), { merge: true });
     return true;
   } catch (e: any) {
     console.warn('User cloud sync error:', e);
@@ -179,10 +192,10 @@ export async function syncLeadToCloud(lead: any): Promise<boolean> {
   try {
     if (!db || !lead?.id) return false;
     const docRef = doc(collection(db, 'leads'), lead.id);
-    await setDoc(docRef, {
+    await setDoc(docRef, stripUndefined({
       ...lead,
       updatedAt: new Date().toISOString()
-    }, { merge: true });
+    }), { merge: true });
     return true;
   } catch (e: any) {
     console.warn('Lead cloud sync error:', e);

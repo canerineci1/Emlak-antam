@@ -44,17 +44,22 @@ try {
 try {
   if (app) {
     if (Platform.OS === 'web') {
-      auth = getAuth(app);
-    } else {
       try {
         auth = getAuth(app);
       } catch {
+        auth = initializeAuth(app);
+      }
+    } else {
+      try {
+        auth = initializeAuth(app, {
+          persistence: getReactNativePersistence(AsyncStorage)
+        });
+      } catch (initErr: any) {
+        // Eğer Fast Refresh / hot reload esnasında zaten başlatılmışsa var olanı al
         try {
-          auth = initializeAuth(app, {
-            persistence: getReactNativePersistence(AsyncStorage)
-          });
-        } catch {
           auth = getAuth(app);
+        } catch (getAuthErr) {
+          console.warn('Firebase getAuth instance error:', getAuthErr);
         }
       }
     }
@@ -67,7 +72,21 @@ export function getFirebaseAuth() {
   if (auth) return auth;
   try {
     if (!app) app = !getApps().length ? initializeApp(defaultFirebaseConfig) : getApp();
-    auth = getAuth(app);
+    if (Platform.OS === 'web') {
+      try {
+        auth = getAuth(app);
+      } catch {
+        auth = initializeAuth(app);
+      }
+    } else {
+      try {
+        auth = initializeAuth(app, {
+          persistence: getReactNativePersistence(AsyncStorage)
+        });
+      } catch {
+        auth = getAuth(app);
+      }
+    }
     return auth;
   } catch (e) {
     console.warn('getFirebaseAuth fallback error:', e);

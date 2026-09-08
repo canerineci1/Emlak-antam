@@ -162,11 +162,22 @@ async function persistAuth(user: UserProfile) {
     if (currentDb) {
       try {
         const userDocRef = doc(currentDb, 'users', user.id);
-        await setDoc(userDocRef, {
-          ...user,
+        const cleanData: Record<string, any> = {
+          id: user.id,
+          name: user.name || 'Kullanıcı',
+          email: user.email || '',
+          phone: user.phone || '',
+          role: user.role || 'DANISMAN',
+          roleTitle: user.roleTitle || '',
+          agencyName: user.agencyName || 'EmlakÇantam Gayrimenkul',
+          licenseNumber: user.licenseNumber || '',
+          avatarUrl: user.avatarUrl || '',
+          isLoggedIn: true,
+          authProvider: user.authProvider || 'GOOGLE',
           lastLoginAt: new Date().toISOString(),
           updatedAt: new Date().toISOString()
-        }, { merge: true });
+        };
+        await setDoc(userDocRef, cleanData, { merge: true });
       } catch (cloudErr) {
         console.warn('Firestore user cloud save error:', cloudErr);
       }
@@ -339,7 +350,7 @@ export async function loginWithGoogle(
     roleTitle: isManager ? 'Ofis Sahibi & Broker' : 'Gayrimenkul Danışmanı',
     agencyName: 'EmlakÇantam Gayrimenkul',
     licenseNumber: '',
-    avatarUrl: avatarUrl || undefined,
+    avatarUrl: avatarUrl || '',
     isLoggedIn: true,
     authProvider: 'GOOGLE'
   };
