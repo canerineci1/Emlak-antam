@@ -1,7 +1,9 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
-import { getAuth, initializeAuth } from 'firebase/auth';
+import { getAuth, initializeAuth, getReactNativePersistence } from 'firebase/auth';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
 
 export const defaultFirebaseConfig = {
   apiKey: "AIzaSyANJGbABLfp2V6F4cpJzaVwnf-YtN1OBnE",
@@ -41,10 +43,21 @@ try {
 
 try {
   if (app) {
-    try {
-      auth = initializeAuth(app);
-    } catch {
-      auth = getAuth(app);
+    if (Platform.OS === 'web') {
+      try {
+        auth = getAuth(app);
+      } catch {
+        auth = initializeAuth(app);
+      }
+    } else {
+      try {
+        const persistence = typeof getReactNativePersistence === 'function'
+          ? getReactNativePersistence(AsyncStorage)
+          : undefined;
+        auth = initializeAuth(app, persistence ? { persistence } : undefined);
+      } catch {
+        auth = getAuth(app);
+      }
     }
   }
 } catch (e) {
@@ -55,10 +68,21 @@ export function getFirebaseAuth() {
   if (auth) return auth;
   try {
     if (!app) app = !getApps().length ? initializeApp(defaultFirebaseConfig) : getApp();
-    try {
-      auth = initializeAuth(app);
-    } catch {
-      auth = getAuth(app);
+    if (Platform.OS === 'web') {
+      try {
+        auth = getAuth(app);
+      } catch {
+        auth = initializeAuth(app);
+      }
+    } else {
+      try {
+        const persistence = typeof getReactNativePersistence === 'function'
+          ? getReactNativePersistence(AsyncStorage)
+          : undefined;
+        auth = initializeAuth(app, persistence ? { persistence } : undefined);
+      } catch {
+        auth = getAuth(app);
+      }
     }
     return auth;
   } catch (e) {
