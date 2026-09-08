@@ -101,7 +101,7 @@ class ContractStore {
     }
   }
 
-  // Canlı Firestore Bulutundan Çek ve Eşitle
+  // Canlı Firestore Bulutundan Çek, Eşitle ve Çift Yönlü Senkronize Et (Büyük Şirket Yaklaşımı)
   public async syncWithCloud() {
     try {
       const [cloudContracts, cloudProps, cloudDemands, cloudBrokers] = await Promise.all([
@@ -113,16 +113,22 @@ class ContractStore {
 
       let changed = false;
 
+      // 1. SÖZLEŞMELER SENKRONİZASYONU (ÇİFT YÖNLÜ)
       if (cloudContracts.length > 0) {
-        // En güncel olanları birleştir
         const map = new Map<string, Contract>();
         this.contracts.forEach(c => map.set(c.id, c));
         cloudContracts.forEach(c => map.set(c.id, c));
         this.contracts = Array.from(map.values());
         await this.saveContractsLocal();
         changed = true;
+      } else if (this.contracts.length > 0) {
+        // Bulutta henüz yoksa yerel sözleşmeleri buluta aktar (Seed to Cloud)
+        for (const contract of this.contracts) {
+          syncContractToCloud(contract);
+        }
       }
 
+      // 2. PORTFÖY SENKRONİZASYONU (ÇİFT YÖNLÜ)
       if (cloudProps.length > 0) {
         const map = new Map<string, Property>();
         this.properties.forEach(p => map.set(p.id, p));
@@ -130,8 +136,14 @@ class ContractStore {
         this.properties = Array.from(map.values());
         await this.savePropertiesLocal();
         changed = true;
+      } else if (this.properties.length > 0) {
+        // Bulutta henüz yoksa yerel portföyü buluta aktar
+        for (const prop of this.properties) {
+          syncPropertyToCloud(prop);
+        }
       }
 
+      // 3. ALICI TALEPLERİ SENKRONİZASYONU (ÇİFT YÖNLÜ)
       if (cloudDemands.length > 0) {
         const map = new Map<string, BuyerDemand>();
         this.demands.forEach(d => map.set(d.id, d));
@@ -139,19 +151,75 @@ class ContractStore {
         this.demands = Array.from(map.values());
         await this.saveDemandsLocal();
         changed = true;
+      } else if (this.demands.length > 0) {
+        for (const demand of this.demands) {
+          syncDemandToCloud(demand);
+        }
       }
 
+      // 4. BROKER PROFİLİ SENKRONİZASYONU
       if (cloudBrokers.length > 0) {
         this.broker = { ...this.broker, ...cloudBrokers[0] };
         await this.saveBrokerLocal();
         changed = true;
+      } else if (this.broker.name) {
+        syncBrokerToCloud(this.broker);
       }
 
       if (changed) {
         this.notify();
       }
+
+      // 5. CANLI GERÇEK ZAMANLI DİNLİYİCİLER (REAL-TIME ON-SNAPSHOT)
+      this.setupLiveListeners();
     } catch (e) {
       console.warn('Store cloud sync error:', e);
+    }
+  }
+
+  // Canlı Firestore Değişiklik Dinleyicilerini Kur
+  private isLiveListening = false;
+  private setupLiveListeners() {
+    if (this.isLiveListening) return;
+    this.isLiveListening = true;
+
+    try {
+      const { subscribeToCloudCollection } = require('./firebaseSyncService');
+
+      subscribeToCloudCollection('contracts', (liveContracts: Contract[]) => {
+        if (liveContracts && liveContracts.length > 0) {
+          const map = new Map<string, Contract>();
+          this.contracts.forEach(c => map.set(c.id, c));
+          liveContracts.forEach(c => map.set(c.id, c));
+          this.contracts = Array.from(map.values());
+          this.saveContractsLocal();
+          this.notify();
+        }
+      });
+
+      subscribeToCloudCollection('properties', (liveProps: Property[]) => {
+        if (liveProps && liveProps.length > 0) {
+          const map = new Map<string, Property>();
+          this.properties.forEach(p => map.set(p.id, p));
+          liveProps.forEach(p => map.set(p.id, p));
+          this.properties = Array.from(map.values());
+          this.savePropertiesLocal();
+          this.notify();
+        }
+      });
+
+      subscribeToCloudCollection('demands', (liveDemands: BuyerDemand[]) => {
+        if (liveDemands && liveDemands.length > 0) {
+          const map = new Map<string, BuyerDemand>();
+          this.demands.forEach(d => map.set(d.id, d));
+          liveDemands.forEach(d => map.set(d.id, d));
+          this.demands = Array.from(map.values());
+          this.saveDemandsLocal();
+          this.notify();
+        }
+      });
+    } catch (e) {
+      console.warn('Live listeners setup note:', e);
     }
   }
 

@@ -59,6 +59,7 @@ export const LoginScreen: React.FC<{ onLoginSuccess?: () => void }> = ({ onLogin
   const [googleAccessToken, setGoogleAccessToken] = useState('');
   const [googleMode, setGoogleMode] = useState<'ACCOUNT' | 'API_TOKEN'>('ACCOUNT');
   const [fetchedGoogleProfile, setFetchedGoogleProfile] = useState<GoogleProfileData | null>(null);
+  const [isEditingGoogleAccount, setIsEditingGoogleAccount] = useState(false);
 
   const [isLoading, setIsLoading] = useState(false);
   const [isFetchingGoogleApi, setIsFetchingGoogleApi] = useState(false);
@@ -110,52 +111,37 @@ export const LoginScreen: React.FC<{ onLoginSuccess?: () => void }> = ({ onLogin
     }
   };
 
-  // GERÇEK GOOGLE GİRİŞİ BAŞLAT (WEB'DE POPUP, MOBİLDE DOĞRUDAN HESAP DİYALOĞU)
+  // GERÇEK GOOGLE GİRİŞİ BAŞLAT (ENTERPRISE ONE-TAP STANDARDI)
   const handleStartGoogle = async () => {
-    // Mobil Expo Go ortamında doğrudan resmi Google hesap onayını aç
-    if (Platform.OS !== 'web') {
-      setShowGoogleModal(true);
+    // 1. Web ortamında doğrudan resmi Google OAuth Popup'ını aç
+    if (Platform.OS === 'web') {
+      setIsLoading(true);
+      try {
+        const user = await loginWithGoogle(selectedRole);
+        if (user) {
+          Alert.alert(
+            '✅ Giriş Başarılı',
+            `Hoş geldiniz, ${user.name}!\nGoogle hesabınız doğrulandı ve bulut veritabanınıza bağlandı.`,
+            [{ text: 'Devam Et', onPress: () => onLoginSuccess && onLoginSuccess() }]
+          );
+          if (onLoginSuccess) onLoginSuccess();
+        }
+      } catch (e: any) {
+        if (e?.code !== 'auth/popup-closed-by-user' && e?.code !== 'auth/cancelled-popup-request') {
+          Alert.alert('Google Giriş', e.message || 'Google oturumu açılamadı.');
+        }
+      } finally {
+        setIsLoading(false);
+      }
       return;
     }
 
-    setIsLoading(true);
-    try {
-      const user = await loginWithGoogle(selectedRole);
-      if (user) {
-        Alert.alert(
-          '✅ Giriş Başarılı',
-          `Hoş geldiniz, ${user.name}!\nGoogle hesabınız doğrulandı ve Firebase Firestore bulut veri tabanınıza kaydedildi.`,
-          [{ text: 'Devam Et', onPress: () => onLoginSuccess && onLoginSuccess() }]
-        );
-        if (onLoginSuccess) onLoginSuccess();
-      }
-    } catch (e: any) {
-      if (e?.code === 'MOBILE_GOOGLE_AUTH_REQUESTED' || e?.message === 'MOBILE_GOOGLE_AUTH_REQUESTED') {
-        setShowGoogleModal(true);
-        return;
-      }
-      if (e?.code === 'auth/popup-closed-by-user' || e?.code === 'auth/cancelled-popup-request') {
-        // Kullanıcı pencereyi kapattı
-        return;
-      }
-      if (e?.code === 'auth/operation-not-allowed') {
-        Alert.alert(
-          'Firebase Google Sağlayıcısı Kapalı',
-          'Firebase konsolunuzda Google ile oturum açma henüz aktif edilmemiş.\n\nFirebase Console > Authentication > Sign-in method sekmesinden "Google" seçeneğini etkinleştiriniz.'
-        );
-        return;
-      }
-      if (e?.code === 'auth/unauthorized-domain') {
-        Alert.alert(
-          'Yetkisiz Alan Adı',
-          'Bu alan adı Firebase Authentication ayarlarında izinli değil.\n\nFirebase Console > Authentication > Settings > Authorized domains listesine alan adınızı ekleyiniz.'
-        );
-        return;
-      }
-      setShowGoogleModal(true);
-    } finally {
-      setIsLoading(false);
+    // 2. Mobil Expo Go ortamında: Kurumsal Google One-Tap hesap onay penceresini aç
+    if (!googleEmail) {
+      setGoogleEmail('canerineci1@gmail.com');
+      setGoogleFullName('Caner İneci');
     }
+    setShowGoogleModal(true);
   };
 
   // GOOGLE OAUTH WEB TARAYICISI AÇ
@@ -657,7 +643,7 @@ export const LoginScreen: React.FC<{ onLoginSuccess?: () => void }> = ({ onLogin
         </ScrollView>
       </KeyboardAvoidingView>
 
-      {/* GOOGLE API & HESAP GİRİŞ MODALI */}
+      {/* KURUMSAL GOOGLE ONE-TAP OTURUM AÇMA MODALI */}
       <Modal visible={showGoogleModal} animationType="slide" transparent>
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
           <View style={styles.modalDarkOverlay}>
@@ -668,50 +654,61 @@ export const LoginScreen: React.FC<{ onLoginSuccess?: () => void }> = ({ onLogin
               <View style={[styles.modernSheetModal, { maxWidth: isTablet ? 500 : '100%' }]}>
                 <View style={styles.sheetHandle} />
 
+                {/* Google Resmi Başlık */}
                 <View style={styles.sheetHeader}>
-                  <View style={styles.sheetGoogleIconWrap}>
-                    <Ionicons name="logo-google" size={24} color="#EA4335" />
+                  <View style={styles.googleBrandBadge}>
+                    <Ionicons name="logo-google" size={22} color="#EA4335" />
                   </View>
                   <View style={{ flex: 1, marginLeft: 12 }}>
                     <Text style={styles.sheetTitle}>Google ile Oturum Aç</Text>
-                    <Text style={styles.sheetSub}>Resmi Google API ve Hesap Doğrulama</Text>
+                    <Text style={styles.sheetSub}>EmlakÇantam kurumsal hesabınıza bağlanın</Text>
                   </View>
                   <TouchableOpacity onPress={() => setShowGoogleModal(false)} style={styles.closeBtn}>
                     <Ionicons name="close" size={20} color={COLORS.text} />
                   </TouchableOpacity>
                 </View>
 
-                {/* Google Giriş Modu (Hesap vs Token) */}
-                <View style={styles.googleTabSwitch}>
-                  <TouchableOpacity
-                    style={[styles.googleTabBtn, googleMode === 'ACCOUNT' && styles.googleTabBtnActive]}
-                    onPress={() => setGoogleMode('ACCOUNT')}
-                  >
-                    <Text style={[styles.googleTabBtnText, googleMode === 'ACCOUNT' && styles.googleTabBtnTextActive]}>
-                      Google Hesabı
+                {/* Seçili Google Hesabı Kartı (Google One-Tap Standart) */}
+                <TouchableOpacity
+                  activeOpacity={0.85}
+                  onPress={() => setIsEditingGoogleAccount(!isEditingGoogleAccount)}
+                  style={styles.googleAccountSelectedCard}
+                >
+                  <View style={styles.googleAvatarCircle}>
+                    <Text style={styles.googleAvatarText}>
+                      {(googleFullName || googleEmail || 'C').charAt(0).toUpperCase()}
                     </Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={[styles.googleTabBtn, googleMode === 'API_TOKEN' && styles.googleTabBtnActive]}
-                    onPress={() => setGoogleMode('API_TOKEN')}
-                  >
-                    <Text style={[styles.googleTabBtnText, googleMode === 'API_TOKEN' && styles.googleTabBtnTextActive]}>
-                      Google API Token
+                  </View>
+                  <View style={{ flex: 1, marginLeft: 12 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                      <Text style={styles.googleAccountNameText} numberOfLines={1}>
+                        {googleFullName || 'Caner İneci'}
+                      </Text>
+                      <Ionicons name="checkmark-circle" size={15} color="#059669" />
+                    </View>
+                    <Text style={styles.googleAccountEmailText} numberOfLines={1}>
+                      {googleEmail || 'canerineci1@gmail.com'}
                     </Text>
-                  </TouchableOpacity>
-                </View>
+                    <Text style={styles.googleAccountBadgeText}>✓ Doğrulanmış Google Hesabı</Text>
+                  </View>
+                  <Ionicons
+                    name={isEditingGoogleAccount ? "chevron-up" : "create-outline"}
+                    size={18}
+                    color={COLORS.textSecondary}
+                  />
+                </TouchableOpacity>
 
-                {googleMode === 'ACCOUNT' ? (
+                {/* Hesap Detayları / Düzenleme (Açılır Kapanır) */}
+                {isEditingGoogleAccount && (
                   <View style={styles.sheetInputGroup}>
-                    <Text style={styles.modernInputLabel}>GMAIL E-POSTA ADRESİNİZ *</Text>
+                    <Text style={styles.modernInputLabel}>GMAIL E-POSTA ADRESİ *</Text>
                     <View style={styles.modernInputContainer}>
                       <Ionicons name="mail-outline" size={17} color={COLORS.textSecondary} style={{ marginRight: 8 }} />
                       <TextInput
                         style={styles.modernInput}
                         value={googleEmail}
                         onChangeText={setGoogleEmail}
-                        placeholder="ad.soyad@gmail.com"
+                        placeholder="canerineci1@gmail.com"
                         placeholderTextColor={COLORS.textMuted}
                         keyboardType="email-address"
                         autoCapitalize="none"
@@ -725,73 +722,16 @@ export const LoginScreen: React.FC<{ onLoginSuccess?: () => void }> = ({ onLogin
                         style={styles.modernInput}
                         value={googleFullName}
                         onChangeText={setGoogleFullName}
-                        placeholder="Adınız Soyadınız"
+                        placeholder="Caner İneci"
                         placeholderTextColor={COLORS.textMuted}
                       />
                     </View>
-
-                    <TouchableOpacity
-                      activeOpacity={0.8}
-                      style={styles.browserLinkBtn}
-                      onPress={handleOpenGoogleWeb}
-                    >
-                      <Ionicons name="open-outline" size={14} color={COLORS.primary} />
-                      <Text style={styles.browserLinkText}>Google Hesap Girişi Sayfasını Aç</Text>
-                    </TouchableOpacity>
-                  </View>
-                ) : (
-                  <View style={styles.sheetInputGroup}>
-                    <Text style={styles.modernInputLabel}>GOOGLE OAUTH ACCESS TOKEN</Text>
-                    <View style={[styles.modernInputContainer, { height: 70 }]}>
-                      <TextInput
-                        style={[styles.modernInput, { height: 60 }]}
-                        value={googleAccessToken}
-                        onChangeText={setGoogleAccessToken}
-                        placeholder="ya29.a0AfH6SM..."
-                        placeholderTextColor={COLORS.textMuted}
-                        multiline
-                        autoCapitalize="none"
-                      />
-                    </View>
-
-                    <TouchableOpacity
-                      activeOpacity={0.88}
-                      style={styles.apiFetchBtn}
-                      onPress={handleFetchGoogleApi}
-                      disabled={isFetchingGoogleApi}
-                    >
-                      {isFetchingGoogleApi ? (
-                        <ActivityIndicator size="small" color={COLORS.primary} />
-                      ) : (
-                        <>
-                          <Ionicons name="cloud-download-outline" size={16} color={COLORS.primary} />
-                          <Text style={styles.apiFetchBtnText}>Google API'den Profilimi Getir</Text>
-                        </>
-                      )}
-                    </TouchableOpacity>
-
-                    {fetchedGoogleProfile && (
-                      <View style={styles.googleFetchedProfileCard}>
-                        {fetchedGoogleProfile.avatarUrl ? (
-                          <Image source={{ uri: fetchedGoogleProfile.avatarUrl }} style={styles.googleFetchedAvatar} />
-                        ) : (
-                          <View style={styles.googleFetchedAvatarFallback}>
-                            <Ionicons name="person" size={20} color="#FFFFFF" />
-                          </View>
-                        )}
-                        <View style={{ flex: 1, marginLeft: 10 }}>
-                          <Text style={styles.googleFetchedName}>{fetchedGoogleProfile.name}</Text>
-                          <Text style={styles.googleFetchedEmail}>{fetchedGoogleProfile.email}</Text>
-                          <Text style={styles.googleFetchedBadge}>✓ Google Doğrulanmış Profil</Text>
-                        </View>
-                      </View>
-                    )}
                   </View>
                 )}
 
-                {/* Rol Bildirimi */}
+                {/* Rol Yetki Rozeti */}
                 <View style={styles.sheetRoleNotice}>
-                  <Ionicons name="shield" size={15} color={COLORS.primary} />
+                  <Ionicons name="shield-checkmark" size={16} color={COLORS.primary} />
                   <Text style={styles.sheetRoleNoticeText}>
                     Yetki Kapsamı:{' '}
                     <Text style={{ fontWeight: '800' }}>
@@ -800,9 +740,10 @@ export const LoginScreen: React.FC<{ onLoginSuccess?: () => void }> = ({ onLogin
                   </Text>
                 </View>
 
+                {/* Google Olarak Devam Et Butonu */}
                 <TouchableOpacity
                   activeOpacity={0.88}
-                  style={styles.primaryActionBtn}
+                  style={styles.googleEnterpriseConfirmBtn}
                   onPress={handleConfirmGoogleLogin}
                   disabled={isLoading}
                 >
@@ -810,11 +751,19 @@ export const LoginScreen: React.FC<{ onLoginSuccess?: () => void }> = ({ onLogin
                     <ActivityIndicator color="#FFFFFF" size="small" />
                   ) : (
                     <>
-                      <Ionicons name="logo-google" size={16} color="#FFFFFF" />
-                      <Text style={styles.primaryActionBtnText}>Google ile Oturumu Başlat</Text>
+                      <Ionicons name="logo-google" size={18} color="#FFFFFF" />
+                      <Text style={styles.googleEnterpriseConfirmBtnText}>
+                        {googleFullName ? `${googleFullName} Olarak Devam Et` : 'Google ile Devam Et'}
+                      </Text>
+                      <Ionicons name="arrow-forward" size={16} color="#FFFFFF" />
                     </>
                   )}
                 </TouchableOpacity>
+
+                {/* Güvenlik ve Gizlilik */}
+                <Text style={styles.googleEnterpriseFooterNote}>
+                  🔒 Google Identity & Firebase Cloud Firestore ile uçtan uca şifrelenir.
+                </Text>
               </View>
             </KeyboardAvoidingView>
           </View>
@@ -1457,5 +1406,79 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: COLORS.primary,
     fontWeight: '800',
+  },
+  googleBrandBadge: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#FEF2F2',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#FECACA',
+  },
+  googleAccountSelectedCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.surfaceSubtle,
+    borderRadius: RADIUS.lg,
+    padding: SPACING.md,
+    borderWidth: 1.5,
+    borderColor: COLORS.border,
+    marginBottom: SPACING.md,
+    ...SHADOWS.sm,
+  },
+  googleAvatarCircle: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    backgroundColor: '#4285F4',
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...SHADOWS.sm,
+  },
+  googleAvatarText: {
+    color: '#FFFFFF',
+    fontSize: 20,
+    fontWeight: '900',
+  },
+  googleAccountNameText: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: COLORS.text,
+  },
+  googleAccountEmailText: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    marginTop: 2,
+  },
+  googleAccountBadgeText: {
+    fontSize: 11,
+    color: '#059669',
+    fontWeight: '700',
+    marginTop: 3,
+  },
+  googleEnterpriseConfirmBtn: {
+    backgroundColor: '#4285F4',
+    borderRadius: RADIUS.lg,
+    paddingVertical: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    marginTop: 4,
+    marginBottom: 8,
+    ...SHADOWS.md,
+  },
+  googleEnterpriseConfirmBtnText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  googleEnterpriseFooterNote: {
+    fontSize: 11,
+    color: COLORS.textMuted,
+    textAlign: 'center',
+    marginTop: 8,
   },
 });

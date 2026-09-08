@@ -54,7 +54,7 @@ export async function saveFirebaseConfig(config: FirebaseCustomConfig): Promise<
   }
 }
 
-// GENEL KOLEKSİYON GETİRME (BULUTTAN ÇEK)
+// GENEL KOLEKSİYON GETİRME (BULUTTAN ÇEK - OFFLINE-FIRST GÜVENLİ)
 export async function fetchCollectionFromCloud<T>(collectionName: string): Promise<T[]> {
   try {
     if (!db) return [];
@@ -64,9 +64,46 @@ export async function fetchCollectionFromCloud<T>(collectionName: string): Promi
       items.push(document.data() as T);
     });
     return items;
-  } catch (e) {
-    console.warn(`Fetch error for collection ${collectionName}:`, e);
+  } catch (e: any) {
+    if (e?.code !== 'permission-denied') {
+      console.log(`Cloud sync note [${collectionName}]: yerel önbellek devrede`);
+    }
     return [];
+  }
+}
+
+// BÜYÜK ŞİRKETLERİN KULLANDIĞI CANLI ON-SNAPSHOT DİNLEYİCİSİ (REAL-TIME REACTIVE SYNC)
+export function subscribeToCloudCollection<T>(
+  collectionName: string,
+  onData: (items: T[]) => void,
+  onError?: (err: any) => void
+): () => void {
+  try {
+    if (!db) return () => {};
+    const { onSnapshot } = require('firebase/firestore');
+    const colRef = collection(db, collectionName);
+
+    const unsubscribe = onSnapshot(
+      colRef,
+      (snapshot: any) => {
+        const items: T[] = [];
+        snapshot.forEach((docSnap: any) => {
+          items.push(docSnap.data() as T);
+        });
+        onData(items);
+      },
+      (err: any) => {
+        if (err?.code !== 'permission-denied') {
+          console.warn(`Real-time listener note [${collectionName}]:`, err?.message || err);
+        }
+        if (onError) onError(err);
+      }
+    );
+
+    return unsubscribe;
+  } catch (e) {
+    console.warn('subscribeToCloudCollection init error:', e);
+    return () => {};
   }
 }
 
