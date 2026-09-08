@@ -1,9 +1,7 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
-import { getAuth, initializeAuth, getReactNativePersistence } from 'firebase/auth';
-import { Platform } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getAuth, initializeAuth } from 'firebase/auth';
 
 export const defaultFirebaseConfig = {
   apiKey: "AIzaSyANJGbABLfp2V6F4cpJzaVwnf-YtN1OBnE",
@@ -43,25 +41,10 @@ try {
 
 try {
   if (app) {
-    if (Platform.OS === 'web') {
-      try {
-        auth = getAuth(app);
-      } catch {
-        auth = initializeAuth(app);
-      }
-    } else {
-      try {
-        auth = initializeAuth(app, {
-          persistence: getReactNativePersistence(AsyncStorage)
-        });
-      } catch (initErr: any) {
-        // Eğer Fast Refresh / hot reload esnasında zaten başlatılmışsa var olanı al
-        try {
-          auth = getAuth(app);
-        } catch (getAuthErr) {
-          console.warn('Firebase getAuth instance error:', getAuthErr);
-        }
-      }
+    try {
+      auth = initializeAuth(app);
+    } catch {
+      auth = getAuth(app);
     }
   }
 } catch (e) {
@@ -72,20 +55,10 @@ export function getFirebaseAuth() {
   if (auth) return auth;
   try {
     if (!app) app = !getApps().length ? initializeApp(defaultFirebaseConfig) : getApp();
-    if (Platform.OS === 'web') {
-      try {
-        auth = getAuth(app);
-      } catch {
-        auth = initializeAuth(app);
-      }
-    } else {
-      try {
-        auth = initializeAuth(app, {
-          persistence: getReactNativePersistence(AsyncStorage)
-        });
-      } catch {
-        auth = getAuth(app);
-      }
+    try {
+      auth = initializeAuth(app);
+    } catch {
+      auth = getAuth(app);
     }
     return auth;
   } catch (e) {
