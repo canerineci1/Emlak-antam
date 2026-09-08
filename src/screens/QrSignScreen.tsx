@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Linking, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS, SPACING, RADIUS, SHADOWS } from '../constants/theme';
@@ -7,10 +7,10 @@ import { Ionicons } from '@expo/vector-icons';
 
 export const QrSignScreen: React.FC<{ navigation: any; route: any }> = ({ navigation, route }) => {
   const contractId = route.params?.contractId || `cnt_${Date.now()}`;
-  const mockWebUrl = `https://emlakcantam.app/sign/${contractId}`;
+  const liveSignUrl = `https://emlakcantam.app/sign/${contractId}`;
 
   const handleShareLink = () => {
-    const msg = `Sayın Müşterimiz,\n\nTaşınmaz Gösterme Belgenizi kendi telefonunuzdan temassız olarak güvenle imzalamak için aşağıdaki bağlantıya tıklayabilirsiniz:\n\n🔗 ${mockWebUrl}`;
+    const msg = `Sayın Müşterimiz,\n\nTaşınmaz Gösterme Belgenizi kendi telefonunuzdan temassız olarak güvenle imzalamak için aşağıdaki bağlantıya tıklayabilirsiniz:\n\n🔗 ${liveSignUrl}`;
     const url = `whatsapp://send?text=${encodeURIComponent(msg)}`;
 
     Linking.openURL(url).catch(() => {
@@ -39,7 +39,7 @@ export const QrSignScreen: React.FC<{ navigation: any; route: any }> = ({ naviga
           </View>
 
           <View style={styles.linkBox}>
-            <Text style={styles.linkText} numberOfLines={1}>{mockWebUrl}</Text>
+            <Text style={styles.linkText} numberOfLines={1}>{liveSignUrl}</Text>
           </View>
         </View>
 

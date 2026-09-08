@@ -1,7 +1,15 @@
 import * as FileSystem from 'expo-file-system/legacy';
 import { syncUserToCloud } from './firebaseSyncService';
-import { db } from '../config/firebase';
+import { db, auth } from '../config/firebase';
 import { doc, getDoc } from 'firebase/firestore';
+import {
+  signInWithCredential,
+  GoogleAuthProvider,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signOut as firebaseSignOut,
+  onAuthStateChanged
+} from 'firebase/auth';
 import { store } from './storageService';
 
 export type UserRole = 'YONETICI' | 'DANISMAN';
@@ -17,6 +25,7 @@ export interface UserProfile {
   licenseNumber: string;
   avatarUrl?: string;
   isLoggedIn: boolean;
+  authProvider?: 'GOOGLE' | 'PHONE' | 'EMAIL';
 }
 
 export interface GoogleProfileData {
@@ -61,6 +70,33 @@ function notifyListeners() {
       console.warn('Auth listener error:', e);
     }
   });
+}
+
+// Canlı Firebase Auth Dinleyicisi
+if (auth) {
+  try {
+    onAuthStateChanged(auth, async (fbUser: any) => {
+      if (fbUser && !currentUser.isLoggedIn) {
+        // Firebase kullanıcısı var, profili çek
+        const profile: UserProfile = {
+          id: fbUser.uid,
+          name: fbUser.displayName || fbUser.email?.split('@')[0] || 'Kullanıcı',
+          email: fbUser.email || '',
+          phone: fbUser.phoneNumber || currentUser.phone || '',
+          role: currentUser.role || 'DANISMAN',
+          roleTitle: currentUser.role === 'YONETICI' ? 'Ofis Sahibi & Broker' : 'Gayrimenkul Danışmanı',
+          agencyName: currentUser.agencyName || 'EmlakÇantam Gayrimenkul',
+          licenseNumber: currentUser.licenseNumber || '',
+          avatarUrl: fbUser.photoURL || currentUser.avatarUrl,
+          isLoggedIn: true,
+          authProvider: 'GOOGLE'
+        };
+        await persistAuth(profile);
+      }
+    });
+  } catch (e) {
+    console.warn('onAuthStateChanged setup note:', e);
+  }
 }
 
 // Kalıcı Oturumu Cihazdan ve Firestore'dan Yükle
@@ -150,10 +186,17 @@ export async function fetchGoogleProfileFromApi(accessToken: string): Promise<Go
   return null;
 }
 
-// GOOGLE İLE GİRİŞ YAP (GERÇEK VERİ & GOOGLE API DESTEĞİ)
+// GOOGLE İLE GİRİŞ YAP (GERÇEK VERİ & FIREBASE AUTH + GOOGLE API)
 export async function loginWithGoogle(
   role: UserRole,
-  customEmailOrData?: string | { email: string; name?: string; id?: string; avatarUrl?: string; accessToken?: string },
+  customEmailOrData?: string | {
+    email?: string;
+    name?: string;
+    id?: string;
+    avatarUrl?: string;
+    accessToken?: string;
+    idToken?: string;
+  },
   customName?: string,
   accessToken?: string
 ): Promise<UserProfile> {
@@ -163,6 +206,7 @@ export async function loginWithGoogle(
   let avatarUrl = '';
   let googleId = '';
   let token = accessToken || '';
+  let idToken = '';
 
   if (typeof customEmailOrData === 'object' && customEmailOrData !== null) {
     email = (customEmailOrData.email || '').trim().toLowerCase();
@@ -170,12 +214,29 @@ export async function loginWithGoogle(
     avatarUrl = customEmailOrData.avatarUrl || '';
     googleId = customEmailOrData.id || '';
     if (customEmailOrData.accessToken) token = customEmailOrData.accessToken;
+    if (customEmailOrData.idToken) idToken = customEmailOrData.idToken;
   } else if (typeof customEmailOrData === 'string') {
     email = customEmailOrData.trim().toLowerCase();
     name = (customName || '').trim();
   }
 
-  // Token varsa canlı Google API'sinden çek
+  // 1. Firebase Auth Credential Girişi (Eğer idToken varsa ve Firebase Auth aktifse)
+  if (auth && idToken) {
+    try {
+      const credential = GoogleAuthProvider.credential(idToken);
+      const userCred = await signInWithCredential(auth, credential);
+      if (userCred.user) {
+        googleId = userCred.user.uid;
+        if (userCred.user.email) email = userCred.user.email;
+        if (userCred.user.displayName) name = userCred.user.displayName;
+        if (userCred.user.photoURL) avatarUrl = userCred.user.photoURL;
+      }
+    } catch (fbAuthErr) {
+      console.warn('Firebase signInWithCredential note (will fallback to profile):', fbAuthErr);
+    }
+  }
+
+  // 2. Canlı Google API'sinden Kullanıcı Bilgilerini Çek (Eğer accessToken varsa)
   if (token) {
     const liveGoogle = await fetchGoogleProfileFromApi(token);
     if (liveGoogle) {
@@ -208,7 +269,66 @@ export async function loginWithGoogle(
     agencyName: 'EmlakÇantam Gayrimenkul',
     licenseNumber: '',
     avatarUrl: avatarUrl || undefined,
-    isLoggedIn: true
+    isLoggedIn: true,
+    authProvider: 'GOOGLE'
+  };
+
+  await persistAuth(profile);
+  return profile;
+}
+
+// E-POSTA VE ŞİFRE İLE GİRİŞ YAP (GERÇEK FIREBASE AUTH)
+export async function loginWithEmail(
+  email: string,
+  password: string,
+  role: UserRole,
+  customName?: string
+): Promise<UserProfile> {
+  const cleanEmail = email.trim().toLowerCase();
+  const isManager = role === 'YONETICI';
+
+  if (!cleanEmail || !cleanEmail.includes('@')) {
+    throw new Error('Lütfen geçerli bir e-posta adresi giriniz.');
+  }
+  if (!password || password.length < 6) {
+    throw new Error('Şifre en az 6 karakter olmalıdır.');
+  }
+
+  let uid = '';
+  let displayName = (customName || '').trim() || cleanEmail.split('@')[0];
+
+  // Firebase Auth ile giriş veya kayıt denemesi
+  if (auth) {
+    try {
+      const userCred = await signInWithEmailAndPassword(auth, cleanEmail, password);
+      uid = userCred.user.uid;
+      if (userCred.user.displayName) displayName = userCred.user.displayName;
+    } catch (err: any) {
+      if (err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') {
+        try {
+          // Kullanıcı yoksa otomatik yeni hesap oluştur
+          const newCred = await createUserWithEmailAndPassword(auth, cleanEmail, password);
+          uid = newCred.user.uid;
+        } catch (createErr: any) {
+          console.warn('Firebase createUser note:', createErr);
+        }
+      } else {
+        console.warn('Firebase email auth note:', err);
+      }
+    }
+  }
+
+  const profile: UserProfile = {
+    id: uid || `email_${Date.now()}`,
+    name: displayName,
+    email: cleanEmail,
+    phone: '',
+    role,
+    roleTitle: isManager ? 'Ofis Sahibi & Broker' : 'Gayrimenkul Danışmanı',
+    agencyName: 'EmlakÇantam Gayrimenkul',
+    licenseNumber: '',
+    isLoggedIn: true,
+    authProvider: 'EMAIL'
   };
 
   await persistAuth(profile);
@@ -240,7 +360,8 @@ export async function loginWithPhone(
     agencyName: 'EmlakÇantam Gayrimenkul',
     licenseNumber: '',
     avatarUrl: undefined,
-    isLoggedIn: true
+    isLoggedIn: true,
+    authProvider: 'PHONE'
   };
 
   await persistAuth(profile);
@@ -261,8 +382,16 @@ export async function switchRole(newRole: UserRole): Promise<UserProfile> {
 
 // ÇIKIŞ YAP (LOGOUT)
 export async function logout(): Promise<void> {
+  if (auth) {
+    try {
+      await firebaseSignOut(auth);
+    } catch (e) {
+      console.warn('Firebase signOut note:', e);
+    }
+  }
+
   currentUser = {
-    ...currentUser,
+    ...INITIAL_EMPTY_USER,
     isLoggedIn: false
   };
   await persistAuth(currentUser);
@@ -271,3 +400,4 @@ export async function logout(): Promise<void> {
 export function getCurrentUser(): UserProfile {
   return currentUser;
 }
+

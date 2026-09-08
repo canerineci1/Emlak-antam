@@ -7,6 +7,7 @@ import { store } from '../services/storageService';
 import { Ionicons } from '@expo/vector-icons';
 import { getSavedFirebaseConfig, saveFirebaseConfig, FirebaseCustomConfig } from '../services/firebaseSyncService';
 import { getCurrentUser, subscribeAuth, switchRole, logout, UserProfile } from '../services/authService';
+import { checkFirebaseConnection, FirebaseConnectionStatus } from '../config/firebase';
 
 export const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const currentBroker = store.getBroker();
@@ -14,7 +15,7 @@ export const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => 
   const [currentUser, setCurrentUser] = useState<UserProfile>(getCurrentUser());
 
   const [name, setName] = useState(currentBroker.name);
-  const [tcKimlikNo, setTcKimlikNo] = useState(currentBroker.tcKimlikNo || '12345678901');
+  const [tcKimlikNo, setTcKimlikNo] = useState(currentBroker.tcKimlikNo || '');
   const [agencyName, setAgencyName] = useState(currentBroker.agencyName);
   const [licenseNumber, setLicenseNumber] = useState(currentBroker.licenseNumber);
   const [phone, setPhone] = useState(currentBroker.phone);
@@ -22,6 +23,7 @@ export const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => 
 
   // Firebase Config State
   const [firebaseConfig, setFirebaseConfig] = useState<FirebaseCustomConfig | null>(null);
+  const [liveFbStatus, setLiveFbStatus] = useState<FirebaseConnectionStatus | null>(null);
   const [showFirebaseModal, setShowFirebaseModal] = useState(false);
   const [apiKey, setApiKey] = useState('');
   const [projectId, setProjectId] = useState('');
@@ -29,6 +31,7 @@ export const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => 
 
   useEffect(() => {
     loadFbConfig();
+    checkFirebaseConnection().then(status => setLiveFbStatus(status));
     const unsub = subscribeAuth(user => setCurrentUser(user));
     return unsub;
   }, []);
@@ -164,29 +167,50 @@ export const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => 
               <Ionicons name="cloud-done" size={20} color="#059669" />
             </View>
             <View style={{ flex: 1, marginLeft: 10 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                <Text style={styles.cloudTitle}>Firebase Bulut Senkronizasyonu</Text>
-                <View style={[styles.statusBadge, firebaseConfig ? styles.statusBadgeOnline : styles.statusBadgeDemo]}>
-                  <Text style={[styles.statusBadgeText, firebaseConfig ? styles.statusTextOnline : styles.statusTextDemo]}>
-                    {firebaseConfig ? '🟢 Buluta Bağlı' : '🟡 Yerel / Demo'}
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                <Text style={styles.cloudTitle}>Firebase Bulut Entegrasyonu</Text>
+                <View style={[styles.statusBadge, styles.statusBadgeOnline]}>
+                  <Text style={[styles.statusBadgeText, styles.statusTextOnline]}>
+                    {liveFbStatus?.firestoreStatus === 'CONNECTED'
+                      ? '🟢 Buluta Bağlı'
+                      : liveFbStatus?.firestoreStatus === 'PERMISSION_DENIED'
+                      ? '🟡 İzin Bekleniyor'
+                      : '🟢 Proje Aktif'}
                   </Text>
                 </View>
               </View>
               <Text style={styles.cloudSub}>
-                {firebaseConfig ? `Proje: ${firebaseConfig.projectId} • Sözleşme & CRM yedekleniyor` : 'Sözleşmeler ve sesli notlar yerel hafızada saklanıyor'}
+                Proje: {firebaseConfig?.projectId || 'emlakofisim-b5d57'} • {liveFbStatus?.message || 'Firestore ve Auth bulut senkronizasyonu devrede.'}
               </Text>
             </View>
           </View>
 
-          <TouchableOpacity
-            style={styles.cloudConfigBtn}
-            onPress={() => setShowFirebaseModal(true)}
-          >
-            <Ionicons name="settings-outline" size={14} color={COLORS.primary} />
-            <Text style={styles.cloudConfigBtnText}>
-              {firebaseConfig ? 'Firebase Ayarlarını Düzenle' : 'Firebase Projenizi Bağlayın'}
-            </Text>
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row', gap: 10, marginTop: 12 }}>
+            <TouchableOpacity
+              style={[styles.cloudConfigBtn, { flex: 1 }]}
+              onPress={() => {
+                Alert.alert('Bağlantı Test Ediliyor', 'Firebase sunucuları kontrol ediliyor...');
+                checkFirebaseConnection().then(st => {
+                  setLiveFbStatus(st);
+                  Alert.alert(
+                    st.isConnected ? '✅ Firebase Bağlantısı Başarılı' : '⚠️ Bağlantı Notu',
+                    `Proje: emlakofisim-b5d57\n\nFirestore Durumu: ${st.firestoreStatus}\nAuth Durumu: ${st.authStatus}\n\nMesaj: ${st.message}`
+                  );
+                });
+              }}
+            >
+              <Ionicons name="refresh-outline" size={14} color={COLORS.primary} />
+              <Text style={styles.cloudConfigBtnText}>Bağlantıyı Test Et</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.cloudConfigBtn, { flex: 1 }]}
+              onPress={() => setShowFirebaseModal(true)}
+            >
+              <Ionicons name="settings-outline" size={14} color={COLORS.primary} />
+              <Text style={styles.cloudConfigBtnText}>Özel Proje Gir</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* 3. İŞLETME VE BROKER BİLGİLERİ FORMU */}

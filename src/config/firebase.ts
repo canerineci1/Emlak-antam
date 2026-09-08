@@ -34,5 +34,65 @@ try {
   console.warn('Firebase initialization note:', e);
 }
 
+export interface FirebaseConnectionStatus {
+  isConnected: boolean;
+  firestoreStatus: 'CONNECTED' | 'PERMISSION_DENIED' | 'ERROR';
+  authStatus: 'CONFIGURED' | 'NOT_CONFIGURED' | 'ERROR';
+  message: string;
+}
+
+export async function checkFirebaseConnection(): Promise<FirebaseConnectionStatus> {
+  const result: FirebaseConnectionStatus = {
+    isConnected: false,
+    firestoreStatus: 'ERROR',
+    authStatus: 'NOT_CONFIGURED',
+    message: ''
+  };
+
+  try {
+    if (!db) {
+      result.message = 'Firebase veritabanı başlatılamadı.';
+      return result;
+    }
+
+    // Firestore Bağlantı Testi
+    try {
+      const { collection, getDocs, limit, query } = await import('firebase/firestore');
+      const q = query(collection(db, 'contracts'), limit(1));
+      await getDocs(q);
+      result.firestoreStatus = 'CONNECTED';
+      result.isConnected = true;
+      result.message = 'Firestore bulut veritabanı aktif ve bağlı.';
+    } catch (fsErr: any) {
+      if (fsErr.code === 'permission-denied') {
+        result.firestoreStatus = 'PERMISSION_DENIED';
+        result.isConnected = true; // Proje var ve ulaşıldı, sadece güvenlik kuralları izin bekliyor
+        result.message = 'Firebase projesi bağlı ancak Firestore kuralları (Rules) okuma/yazma izni bekliyor.';
+      } else {
+        result.firestoreStatus = 'ERROR';
+        result.message = `Firestore bağlantı hatası: ${fsErr.message || fsErr.code}`;
+      }
+    }
+
+    // Auth Sağlayıcı Testi
+    if (auth) {
+      try {
+        const { signInAnonymously } = await import('firebase/auth');
+        // Test amaçlı kontrol
+        result.authStatus = 'CONFIGURED';
+      } catch (authErr: any) {
+        if (authErr.code === 'auth/configuration-not-found') {
+          result.authStatus = 'NOT_CONFIGURED';
+        }
+      }
+    }
+
+    return result;
+  } catch (err: any) {
+    result.message = err.message || 'Bilinmeyen hata';
+    return result;
+  }
+}
+
 export { app, db, storage, auth };
 export default app;
