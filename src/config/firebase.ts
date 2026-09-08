@@ -2,6 +2,7 @@ import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 import { getAuth, initializeAuth, getReactNativePersistence } from 'firebase/auth';
+import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export const defaultFirebaseConfig = {
@@ -22,12 +23,16 @@ try {
   app = !getApps().length ? initializeApp(defaultFirebaseConfig) : getApp();
   db = getFirestore(app);
   storage = getStorage(app);
-  try {
-    auth = initializeAuth(app, {
-      persistence: getReactNativePersistence(AsyncStorage)
-    });
-  } catch {
+  if (Platform.OS === 'web') {
     auth = getAuth(app);
+  } else {
+    try {
+      auth = initializeAuth(app, {
+        persistence: getReactNativePersistence(AsyncStorage)
+      });
+    } catch {
+      auth = getAuth(app);
+    }
   }
 } catch (e) {
   console.warn('Firebase initialization note:', e);

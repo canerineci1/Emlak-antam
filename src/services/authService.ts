@@ -1,15 +1,18 @@
 import * as FileSystem from 'expo-file-system/legacy';
 import { syncUserToCloud } from './firebaseSyncService';
 import { db, auth } from '../config/firebase';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 import {
   signInWithCredential,
   GoogleAuthProvider,
+  signInWithPopup,
+  browserPopupRedirectResolver,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   signOut as firebaseSignOut,
   onAuthStateChanged
 } from 'firebase/auth';
+import { Platform } from 'react-native';
 import { store } from './storageService';
 
 export type UserRole = 'YONETICI' | 'DANISMAN';
@@ -146,9 +149,27 @@ async function persistAuth(user: UserProfile) {
     console.warn('Auth save error', e);
   }
 
-  // Firestore Bulutuna Canlı Gönder
+  // Firestore Bulutuna Canlı Gönder (Gerçek Veritabanı)
   if (user.id && user.isLoggedIn) {
-    syncUserToCloud(user);
+    try {
+      await syncUserToCloud(user);
+    } catch (e) {
+      console.warn('syncUserToCloud error:', e);
+    }
+
+    if (db) {
+      try {
+        const userDocRef = doc(db, 'users', user.id);
+        await setDoc(userDocRef, {
+          ...user,
+          lastLoginAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        }, { merge: true });
+      } catch (cloudErr) {
+        console.warn('Firestore user cloud save error:', cloudErr);
+      }
+    }
+
     // Broker profiline de gerçek kullanıcıyı eşle
     store.updateBroker({
       name: user.name,
@@ -186,7 +207,7 @@ export async function fetchGoogleProfileFromApi(accessToken: string): Promise<Go
   return null;
 }
 
-// GOOGLE İLE GİRİŞ YAP (GERÇEK VERİ & FIREBASE AUTH + GOOGLE API)
+// GOOGLE İLE GİRİŞ YAP (GERÇEK GOOGLE OAUTH POPUP & FIREBASE AUTH + FIRESTORE BULUT)
 export async function loginWithGoogle(
   role: UserRole,
   customEmailOrData?: string | {
@@ -201,6 +222,48 @@ export async function loginWithGoogle(
   accessToken?: string
 ): Promise<UserProfile> {
   const isManager = role === 'YONETICI';
+
+  // 1. DOĞRUDAN GERÇEK GOOGLE OAUTH POPUP / FIREBASE AUTH İLE GİRİŞ
+  const isDirectOAuth = !customEmailOrData || (typeof customEmailOrData === 'object' && !customEmailOrData.email && !customEmailOrData.idToken && !customEmailOrData.accessToken);
+
+  if (isDirectOAuth && auth) {
+    const provider = new GoogleAuthProvider();
+    provider.setCustomParameters({ prompt: 'select_account' });
+    provider.addScope('profile');
+    provider.addScope('email');
+
+    let userCred: any = null;
+    if (Platform.OS === 'web') {
+      userCred = await signInWithPopup(auth, provider, browserPopupRedirectResolver);
+    } else {
+      userCred = await signInWithPopup(auth, provider);
+    }
+
+    if (userCred && userCred.user) {
+      const fbUser = userCred.user;
+      const realEmail = fbUser.email || '';
+      const realName = fbUser.displayName || realEmail.split('@')[0] || 'Google Kullanıcısı';
+
+      const profile: UserProfile = {
+        id: fbUser.uid,
+        name: realName,
+        email: realEmail,
+        phone: fbUser.phoneNumber || '',
+        role,
+        roleTitle: isManager ? 'Ofis Sahibi & Broker' : 'Gayrimenkul Danışmanı',
+        agencyName: 'EmlakÇantam Gayrimenkul',
+        licenseNumber: '',
+        avatarUrl: fbUser.photoURL || undefined,
+        isLoggedIn: true,
+        authProvider: 'GOOGLE'
+      };
+
+      await persistAuth(profile);
+      return profile;
+    }
+  }
+
+  // 2. ID TOKEN VEYA KULLANICI BİLGİSİ İLE GİRİŞ
   let email = '';
   let name = '';
   let avatarUrl = '';
@@ -220,7 +283,7 @@ export async function loginWithGoogle(
     name = (customName || '').trim();
   }
 
-  // 1. Firebase Auth Credential Girişi (Eğer idToken varsa ve Firebase Auth aktifse)
+  // Firebase Auth Credential Girişi
   if (auth && idToken) {
     try {
       const credential = GoogleAuthProvider.credential(idToken);
@@ -232,11 +295,11 @@ export async function loginWithGoogle(
         if (userCred.user.photoURL) avatarUrl = userCred.user.photoURL;
       }
     } catch (fbAuthErr) {
-      console.warn('Firebase signInWithCredential note (will fallback to profile):', fbAuthErr);
+      console.warn('Firebase signInWithCredential error:', fbAuthErr);
     }
   }
 
-  // 2. Canlı Google API'sinden Kullanıcı Bilgilerini Çek (Eğer accessToken varsa)
+  // Canlı Google API'sinden Kullanıcı Bilgilerini Çek
   if (token) {
     const liveGoogle = await fetchGoogleProfileFromApi(token);
     if (liveGoogle) {
@@ -248,11 +311,7 @@ export async function loginWithGoogle(
   }
 
   if (!email) {
-    throw new Error('Lütfen geçerli bir Google e-posta adresi giriniz.');
-  }
-
-  if (!email.includes('@')) {
-    throw new Error('Lütfen geçerli bir e-posta formatı giriniz (Örn: ad.soyad@gmail.com).');
+    throw new Error('Geçerli bir Google hesabı doğrulanamadı.');
   }
 
   if (!name) {

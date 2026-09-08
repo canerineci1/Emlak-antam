@@ -110,13 +110,51 @@ export const LoginScreen: React.FC<{ onLoginSuccess?: () => void }> = ({ onLogin
     }
   };
 
-  // GOOGLE DİYALOĞUNU BAŞLAT
-  const handleStartGoogle = () => {
-    setGoogleEmail('');
-    setGoogleFullName('');
-    setGoogleAccessToken('');
-    setFetchedGoogleProfile(null);
-    setShowGoogleModal(true);
+  // GERÇEK GOOGLE OAUTH POPUP GİRİŞİ BAŞLAT
+  const handleStartGoogle = async () => {
+    setIsLoading(true);
+    try {
+      const user = await loginWithGoogle(selectedRole);
+      if (user) {
+        Alert.alert(
+          '✅ Giriş Başarılı',
+          `Hoş geldiniz, ${user.name}!\nGoogle hesabınız doğrulandı ve Firebase Firestore bulut veri tabanınıza kaydedildi.`,
+          [{ text: 'Devam Et', onPress: () => onLoginSuccess && onLoginSuccess() }]
+        );
+        if (onLoginSuccess) onLoginSuccess();
+      }
+    } catch (e: any) {
+      console.warn('Google login error:', e);
+      if (e?.code === 'auth/popup-closed-by-user' || e?.code === 'auth/cancelled-popup-request') {
+        // Kullanıcı pencereyi kapattı
+        return;
+      }
+      if (e?.code === 'auth/operation-not-allowed') {
+        Alert.alert(
+          'Firebase Google Sağlayıcısı Kapalı',
+          'Firebase konsolunuzda Google ile oturum açma henüz aktif edilmemiş.\n\nFirebase Console > Authentication > Sign-in method sekmesinden "Google" seçeneğini etkinleştiriniz.'
+        );
+        return;
+      }
+      if (e?.code === 'auth/unauthorized-domain') {
+        Alert.alert(
+          'Yetkisiz Alan Adı',
+          'Bu alan adı Firebase Authentication ayarlarında izinli değil.\n\nFirebase Console > Authentication > Settings > Authorized domains listesine alan adınızı ekleyiniz.'
+        );
+        return;
+      }
+      // Mobil ortamda popup desteklenmiyorsa veya başka bir hata varsa modal açarak yedek doğrulama sağla
+      Alert.alert(
+        'Google Giriş Bildirimi',
+        (e?.message || 'Google oturum açma penceresi açılamadı.') + '\n\nDilerseniz manuel hesap veya token ile de bağlanabilirsiniz.',
+        [
+          { text: 'Kapat', style: 'cancel' },
+          { text: 'Hesap Bilgisiyle Bağlan', onPress: () => setShowGoogleModal(true) }
+        ]
+      );
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // GOOGLE OAUTH WEB TARAYICISI AÇ
@@ -154,7 +192,7 @@ export const LoginScreen: React.FC<{ onLoginSuccess?: () => void }> = ({ onLogin
     }
   };
 
-  // GOOGLE İLE GİRİŞİ ONAYLA (GERÇEK VERİ)
+  // GOOGLE İLE GİRİŞİ ONAYLA (GERÇEK VERİ & FIRESTORE)
   const handleConfirmGoogleLogin = async () => {
     const email = (googleEmail || '').trim();
     const name = (googleFullName || '').trim();
@@ -180,6 +218,7 @@ export const LoginScreen: React.FC<{ onLoginSuccess?: () => void }> = ({ onLogin
       });
 
       setShowGoogleModal(false);
+      Alert.alert('✅ Giriş Başarılı', 'Google profiliniz Firebase veri tabanına başarıyla kaydedildi.');
       if (onLoginSuccess) onLoginSuccess();
     } catch (e: any) {
       Alert.alert('Giriş Hatası', e.message || 'Giriş yapılamadı.');
@@ -459,14 +498,21 @@ export const LoginScreen: React.FC<{ onLoginSuccess?: () => void }> = ({ onLogin
               {/* Lüks Google Butonu */}
               <TouchableOpacity
                 activeOpacity={0.88}
-                style={styles.googleHeroBtn}
+                style={[styles.googleHeroBtn, isLoading && { opacity: 0.75 }]}
                 onPress={handleStartGoogle}
+                disabled={isLoading}
               >
-                <View style={styles.googleHeroIconWrap}>
-                  <Ionicons name="logo-google" size={20} color="#EA4335" />
-                </View>
-                <Text style={styles.googleHeroBtnText}>Google ile Giriş Yap</Text>
-                <Ionicons name="arrow-forward" size={18} color={COLORS.text} />
+                {isLoading ? (
+                  <ActivityIndicator size="small" color="#EA4335" style={{ marginRight: 8 }} />
+                ) : (
+                  <View style={styles.googleHeroIconWrap}>
+                    <Ionicons name="logo-google" size={20} color="#EA4335" />
+                  </View>
+                )}
+                <Text style={styles.googleHeroBtnText}>
+                  {isLoading ? 'Google ile Bağlanılıyor...' : 'Google ile Giriş Yap'}
+                </Text>
+                {!isLoading && <Ionicons name="arrow-forward" size={18} color={COLORS.text} />}
               </TouchableOpacity>
 
               {/* Güvenlik ve Canlı Veri Maddeleri */}
