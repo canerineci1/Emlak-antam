@@ -21,21 +21,70 @@ let auth: any = null;
 
 try {
   app = !getApps().length ? initializeApp(defaultFirebaseConfig) : getApp();
-  db = getFirestore(app);
-  storage = getStorage(app);
-  if (Platform.OS === 'web') {
-    auth = getAuth(app);
-  } else {
-    try {
-      auth = initializeAuth(app, {
-        persistence: getReactNativePersistence(AsyncStorage)
-      });
-    } catch {
+} catch (e) {
+  try {
+    app = getApp();
+  } catch (err2) {
+    console.warn('Firebase app init error:', err2);
+  }
+}
+
+try {
+  if (app) db = getFirestore(app);
+} catch (e) {
+  console.warn('Firestore init note:', e);
+}
+
+try {
+  if (app) storage = getStorage(app);
+} catch (e) {
+  console.warn('Storage init note:', e);
+}
+
+try {
+  if (app) {
+    if (Platform.OS === 'web') {
       auth = getAuth(app);
+    } else {
+      try {
+        auth = getAuth(app);
+      } catch {
+        try {
+          auth = initializeAuth(app, {
+            persistence: getReactNativePersistence(AsyncStorage)
+          });
+        } catch {
+          auth = getAuth(app);
+        }
+      }
     }
   }
 } catch (e) {
-  console.warn('Firebase initialization note:', e);
+  console.warn('Firebase auth initialization note:', e);
+}
+
+export function getFirebaseAuth() {
+  if (auth) return auth;
+  try {
+    if (!app) app = !getApps().length ? initializeApp(defaultFirebaseConfig) : getApp();
+    auth = getAuth(app);
+    return auth;
+  } catch (e) {
+    console.warn('getFirebaseAuth fallback error:', e);
+    return null;
+  }
+}
+
+export function getFirebaseDb() {
+  if (db) return db;
+  try {
+    if (!app) app = !getApps().length ? initializeApp(defaultFirebaseConfig) : getApp();
+    db = getFirestore(app);
+    return db;
+  } catch (e) {
+    console.warn('getFirebaseDb fallback error:', e);
+    return null;
+  }
 }
 
 export interface FirebaseConnectionStatus {

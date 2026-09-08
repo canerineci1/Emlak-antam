@@ -1,6 +1,6 @@
 import * as FileSystem from 'expo-file-system/legacy';
 import { syncUserToCloud } from './firebaseSyncService';
-import { db, auth } from '../config/firebase';
+import { db, auth, getFirebaseAuth, getFirebaseDb } from '../config/firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import {
   signInWithCredential,
@@ -114,9 +114,10 @@ export async function loadSavedAuth(): Promise<UserProfile> {
         notifyListeners();
 
         // Eğer kullanıcı oturum açmışsa Firestore bulutundaki profilini güncelle
-        if (currentUser.isLoggedIn && currentUser.id && db) {
+        const currentDb = db || getFirebaseDb();
+        if (currentUser.isLoggedIn && currentUser.id && currentDb) {
           try {
-            const userDocRef = doc(db, 'users', currentUser.id);
+            const userDocRef = doc(currentDb, 'users', currentUser.id);
             const userDoc = await getDoc(userDocRef);
             if (userDoc.exists()) {
               currentUser = { ...currentUser, ...(userDoc.data() as UserProfile) };
@@ -157,9 +158,10 @@ async function persistAuth(user: UserProfile) {
       console.warn('syncUserToCloud error:', e);
     }
 
-    if (db) {
+    const currentDb = db || getFirebaseDb();
+    if (currentDb) {
       try {
-        const userDocRef = doc(db, 'users', user.id);
+        const userDocRef = doc(currentDb, 'users', user.id);
         await setDoc(userDocRef, {
           ...user,
           lastLoginAt: new Date().toISOString(),
@@ -222,21 +224,31 @@ export async function loginWithGoogle(
   accessToken?: string
 ): Promise<UserProfile> {
   const isManager = role === 'YONETICI';
+  const activeAuth = auth || getFirebaseAuth();
 
   // 1. DOĞRUDAN GERÇEK GOOGLE OAUTH POPUP / FIREBASE AUTH İLE GİRİŞ
   const isDirectOAuth = !customEmailOrData || (typeof customEmailOrData === 'object' && !customEmailOrData.email && !customEmailOrData.idToken && !customEmailOrData.accessToken);
 
-  if (isDirectOAuth && auth) {
+  if (isDirectOAuth) {
+    if (!activeAuth) {
+      throw new Error('Firebase Auth servisi başlatılamadı. Lütfen internet bağlantınızı kontrol ediniz.');
+    }
+
     const provider = new GoogleAuthProvider();
     provider.setCustomParameters({ prompt: 'select_account' });
     provider.addScope('profile');
     provider.addScope('email');
 
     let userCred: any = null;
-    if (Platform.OS === 'web') {
-      userCred = await signInWithPopup(auth, provider, browserPopupRedirectResolver);
-    } else {
-      userCred = await signInWithPopup(auth, provider);
+    try {
+      if (Platform.OS === 'web') {
+        userCred = await signInWithPopup(activeAuth, provider, browserPopupRedirectResolver);
+      } else {
+        userCred = await signInWithPopup(activeAuth, provider);
+      }
+    } catch (popupErr: any) {
+      console.warn('Firebase signInWithPopup error:', popupErr?.code, popupErr?.message);
+      throw popupErr;
     }
 
     if (userCred && userCred.user) {

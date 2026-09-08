@@ -143,13 +143,17 @@ export const LoginScreen: React.FC<{ onLoginSuccess?: () => void }> = ({ onLogin
         );
         return;
       }
-      // Mobil ortamda popup desteklenmiyorsa veya başka bir hata varsa modal açarak yedek doğrulama sağla
+      if (e?.code === 'auth/operation-not-supported-in-this-environment' || (Platform.OS !== 'web' && (e?.message?.includes('not supported') || e?.message?.includes('environment')))) {
+        setShowGoogleModal(true);
+        return;
+      }
+      // Diğer durumlar için bilgilendirme
       Alert.alert(
         'Google Giriş Bildirimi',
-        (e?.message || 'Google oturum açma penceresi açılamadı.') + '\n\nDilerseniz manuel hesap veya token ile de bağlanabilirsiniz.',
+        (e?.message || 'Google oturum açma penceresi açılamadı.') + '\n\nDilerseniz hesap bilgilerinizle bağlanabilirsiniz.',
         [
           { text: 'Kapat', style: 'cancel' },
-          { text: 'Hesap Bilgisiyle Bağlan', onPress: () => setShowGoogleModal(true) }
+          { text: 'Hesapla Bağlan', onPress: () => setShowGoogleModal(true) }
         ]
       );
     } finally {
