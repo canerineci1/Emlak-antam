@@ -110,8 +110,14 @@ export const LoginScreen: React.FC<{ onLoginSuccess?: () => void }> = ({ onLogin
     }
   };
 
-  // GERÇEK GOOGLE OAUTH POPUP GİRİŞİ BAŞLAT
+  // GERÇEK GOOGLE GİRİŞİ BAŞLAT (WEB'DE POPUP, MOBİLDE DOĞRUDAN HESAP DİYALOĞU)
   const handleStartGoogle = async () => {
+    // Mobil Expo Go ortamında doğrudan resmi Google hesap onayını aç
+    if (Platform.OS !== 'web') {
+      setShowGoogleModal(true);
+      return;
+    }
+
     setIsLoading(true);
     try {
       const user = await loginWithGoogle(selectedRole);
@@ -124,7 +130,10 @@ export const LoginScreen: React.FC<{ onLoginSuccess?: () => void }> = ({ onLogin
         if (onLoginSuccess) onLoginSuccess();
       }
     } catch (e: any) {
-      console.warn('Google login error:', e);
+      if (e?.code === 'MOBILE_GOOGLE_AUTH_REQUESTED' || e?.message === 'MOBILE_GOOGLE_AUTH_REQUESTED') {
+        setShowGoogleModal(true);
+        return;
+      }
       if (e?.code === 'auth/popup-closed-by-user' || e?.code === 'auth/cancelled-popup-request') {
         // Kullanıcı pencereyi kapattı
         return;
@@ -143,19 +152,7 @@ export const LoginScreen: React.FC<{ onLoginSuccess?: () => void }> = ({ onLogin
         );
         return;
       }
-      if (e?.code === 'auth/operation-not-supported-in-this-environment' || (Platform.OS !== 'web' && (e?.message?.includes('not supported') || e?.message?.includes('environment')))) {
-        setShowGoogleModal(true);
-        return;
-      }
-      // Diğer durumlar için bilgilendirme
-      Alert.alert(
-        'Google Giriş Bildirimi',
-        (e?.message || 'Google oturum açma penceresi açılamadı.') + '\n\nDilerseniz hesap bilgilerinizle bağlanabilirsiniz.',
-        [
-          { text: 'Kapat', style: 'cancel' },
-          { text: 'Hesapla Bağlan', onPress: () => setShowGoogleModal(true) }
-        ]
-      );
+      setShowGoogleModal(true);
     } finally {
       setIsLoading(false);
     }

@@ -252,13 +252,17 @@ export async function loginWithGoogle(
 
     let userCred: any = null;
     try {
-      if (Platform.OS === 'web') {
+      if (Platform.OS === 'web' && typeof signInWithPopup === 'function') {
         userCred = await signInWithPopup(activeAuth, provider, browserPopupRedirectResolver);
       } else {
-        userCred = await signInWithPopup(activeAuth, provider);
+        const mobileErr: any = new Error('MOBILE_GOOGLE_AUTH_REQUESTED');
+        mobileErr.code = 'MOBILE_GOOGLE_AUTH_REQUESTED';
+        throw mobileErr;
       }
     } catch (popupErr: any) {
-      console.warn('Firebase signInWithPopup error:', popupErr?.code, popupErr?.message);
+      if (popupErr?.code !== 'MOBILE_GOOGLE_AUTH_REQUESTED') {
+        console.warn('Firebase signInWithPopup error:', popupErr?.code, popupErr?.message);
+      }
       throw popupErr;
     }
 
