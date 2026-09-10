@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Modal, TextInput, Alert, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Modal, TextInput, Alert, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS, SPACING, RADIUS, SHADOWS } from '../constants/theme';
 import { Header } from '../components/Header';
@@ -159,7 +159,10 @@ export const PropertiesScreen: React.FC<{ navigation: any }> = ({ navigation }) 
 
       {/* Yeni Portföy Ekleme Modalı */}
       <Modal visible={modalVisible} animationType="slide" transparent>
-        <View style={styles.modalOverlay}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={styles.modalOverlay}
+        >
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Yeni Portföy Ekle</Text>
@@ -168,64 +171,71 @@ export const PropertiesScreen: React.FC<{ navigation: any }> = ({ navigation }) 
               </TouchableOpacity>
             </View>
 
-            {/* Tür Seçimi */}
-            <View style={styles.typeToggleRow}>
-              <TouchableOpacity
-                style={[styles.toggleBtn, type === 'SATILIK' && styles.toggleActive]}
-                onPress={() => setType('SATILIK')}
-              >
-                <Text style={[styles.toggleText, type === 'SATILIK' && styles.toggleActiveText]}>Satılık</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.toggleBtn, type === 'KIRALIK' && styles.toggleActive]}
-                onPress={() => setType('KIRALIK')}
-              >
-                <Text style={[styles.toggleText, type === 'KIRALIK' && styles.toggleActiveText]}>Kiralık</Text>
-              </TouchableOpacity>
-            </View>
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+              keyboardDismissMode="on-drag"
+              contentContainerStyle={{ paddingBottom: 40 }}
+            >
+              {/* Tür Seçimi */}
+              <View style={styles.typeToggleRow}>
+                <TouchableOpacity
+                  style={[styles.toggleBtn, type === 'SATILIK' && styles.toggleActive]}
+                  onPress={() => setType('SATILIK')}
+                >
+                  <Text style={[styles.toggleText, type === 'SATILIK' && styles.toggleActiveText]}>Satılık</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.toggleBtn, type === 'KIRALIK' && styles.toggleActive]}
+                  onPress={() => setType('KIRALIK')}
+                >
+                  <Text style={[styles.toggleText, type === 'KIRALIK' && styles.toggleActiveText]}>Kiralık</Text>
+                </TouchableOpacity>
+              </View>
 
-            <TextInput
-              style={styles.modalInput}
-              placeholder="İlan / Portföy Başlığı *"
-              placeholderTextColor={COLORS.textMuted}
-              value={title}
-              onChangeText={setTitle}
-            />
-            <TextInput
-              style={styles.modalInput}
-              placeholder="İlçe (Örn: Kadıköy) *"
-              placeholderTextColor={COLORS.textMuted}
-              value={district}
-              onChangeText={setDistrict}
-            />
-            <TextInput
-              style={styles.modalInput}
-              placeholder="Oda Sayısı (Örn: 3+1)"
-              placeholderTextColor={COLORS.textMuted}
-              value={rooms}
-              onChangeText={setRooms}
-            />
-            <TextInput
-              style={styles.modalInput}
-              placeholder="Açık Adres (Sokak, Bina, No) *"
-              placeholderTextColor={COLORS.textMuted}
-              value={address}
-              onChangeText={setAddress}
-            />
-            <TextInput
-              style={styles.modalInput}
-              placeholder="Fiyat (TL) *"
-              placeholderTextColor={COLORS.textMuted}
-              keyboardType="numeric"
-              value={price}
-              onChangeText={setPrice}
-            />
+              <TextInput
+                style={styles.modalInput}
+                placeholder="İlan / Portföy Başlığı *"
+                placeholderTextColor={COLORS.textMuted}
+                value={title}
+                onChangeText={setTitle}
+              />
+              <TextInput
+                style={styles.modalInput}
+                placeholder="İlçe (Örn: Kadıköy) *"
+                placeholderTextColor={COLORS.textMuted}
+                value={district}
+                onChangeText={setDistrict}
+              />
+              <TextInput
+                style={styles.modalInput}
+                placeholder="Oda Sayısı (Örn: 3+1)"
+                placeholderTextColor={COLORS.textMuted}
+                value={rooms}
+                onChangeText={setRooms}
+              />
+              <TextInput
+                style={styles.modalInput}
+                placeholder="Açık Adres (Sokak, Bina, No) *"
+                placeholderTextColor={COLORS.textMuted}
+                value={address}
+                onChangeText={setAddress}
+              />
+              <TextInput
+                style={styles.modalInput}
+                placeholder="Fiyat (TL) *"
+                placeholderTextColor={COLORS.textMuted}
+                keyboardType="numeric"
+                value={price}
+                onChangeText={setPrice}
+              />
 
-            <TouchableOpacity activeOpacity={0.88} style={styles.saveModalBtn} onPress={handleAddProperty}>
-              <Text style={styles.saveModalBtnText}>Portföyü Kaydet</Text>
-            </TouchableOpacity>
+              <TouchableOpacity activeOpacity={0.88} style={styles.saveModalBtn} onPress={handleAddProperty}>
+                <Text style={styles.saveModalBtnText}>Portföyü Kaydet</Text>
+              </TouchableOpacity>
+            </ScrollView>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
   );
@@ -353,6 +363,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: RADIUS.xl,
     borderTopRightRadius: RADIUS.xl,
     padding: SPACING.lg,
+    maxHeight: '85%',
   },
   modalHeader: {
     flexDirection: 'row',

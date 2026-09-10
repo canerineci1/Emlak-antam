@@ -325,6 +325,7 @@ export const LoginScreen: React.FC<{ onLoginSuccess?: () => void }> = ({ onLogin
           ]}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
         >
           {/* ROL SEÇİCİ MODERN KART */}
           <View style={styles.glassRoleCard}>
@@ -843,6 +844,7 @@ const styles = StyleSheet.create({
   scrollPadding: {
     paddingHorizontal: SPACING.lg,
     paddingTop: SPACING.lg,
+    paddingBottom: 140,
   },
   glassRoleCard: {
     backgroundColor: COLORS.surface,

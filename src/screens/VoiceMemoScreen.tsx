@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, Alert, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS, SPACING, RADIUS, SHADOWS } from '../constants/theme';
 import { Header } from '../components/Header';
@@ -387,7 +387,17 @@ export const VoiceMemoScreen: React.FC<{ navigation: any }> = ({ navigation }) =
       </View>
 
       {activeTab === 'RECORD' ? (
-        <ScrollView style={styles.content} showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollPadding}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={{ flex: 1 }}
+        >
+          <ScrollView 
+            style={styles.content} 
+            showsVerticalScrollIndicator={false} 
+            contentContainerStyle={[styles.scrollPadding, { paddingBottom: 160 }]}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
+          >
           {/* AKTİF MOTOR BİLGİ ROZETİ */}
           <View style={styles.apiStatusBanner}>
             <Ionicons name="shield-checkmark" size={16} color={COLORS.accentDark} />
@@ -472,6 +482,7 @@ export const VoiceMemoScreen: React.FC<{ navigation: any }> = ({ navigation }) =
 
           <View style={{ height: 40 }} />
         </ScrollView>
+      </KeyboardAvoidingView>
       ) : (
         /* CRM RAPORLARI LİSTESİ */
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollPadding}>
@@ -605,6 +616,9 @@ const styles = StyleSheet.create({
   },
   scrollPadding: {
     padding: SPACING.md,
+    maxWidth: 640,
+    width: '100%',
+    alignSelf: 'center',
   },
   apiStatusBanner: {
     flexDirection: 'row',

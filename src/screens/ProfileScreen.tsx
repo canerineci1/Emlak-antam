@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Alert, Modal } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Alert, Modal, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS, SPACING, RADIUS, SHADOWS } from '../constants/theme';
 import { Header } from '../components/Header';
@@ -126,7 +126,17 @@ export const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => 
         onBack={() => navigation.goBack()}
       />
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollPadding}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        style={{ flex: 1 }}
+      >
+        <ScrollView 
+          style={styles.content} 
+          showsVerticalScrollIndicator={false} 
+          contentContainerStyle={[styles.scrollPadding, { paddingBottom: 160 }]}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+        >
         {/* 1. OTURUM AÇAN KULLANICI & ROL KARTI */}
         <View style={styles.userCard}>
           <View style={styles.userHeaderRow}>
@@ -301,10 +311,14 @@ export const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => 
 
         <View style={{ height: 40 }} />
       </ScrollView>
+    </KeyboardAvoidingView>
 
       {/* FIREBASE BAĞLANTI MODALI */}
       <Modal visible={showFirebaseModal} animationType="slide" transparent>
-        <View style={styles.modalBackdrop}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={styles.modalBackdrop}
+        >
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <View>
@@ -316,7 +330,12 @@ export const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => 
               </TouchableOpacity>
             </View>
 
-            <ScrollView showsVerticalScrollIndicator={false}>
+            <ScrollView 
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+              keyboardDismissMode="on-drag"
+              contentContainerStyle={{ paddingBottom: 60 }}
+            >
               <Text style={styles.fieldLabel}>Firebase Project ID (Proje Kimliği) *</Text>
               <TextInput
                 style={styles.modalInput}
@@ -356,7 +375,7 @@ export const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => 
               </TouchableOpacity>
             </ScrollView>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
   );
@@ -372,6 +391,9 @@ const styles = StyleSheet.create({
   },
   scrollPadding: {
     padding: SPACING.md,
+    maxWidth: 640,
+    width: '100%',
+    alignSelf: 'center',
   },
   userCard: {
     backgroundColor: COLORS.surface,

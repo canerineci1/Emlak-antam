@@ -1,5 +1,5 @@
-﻿import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, Alert, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS, SPACING, RADIUS, SHADOWS } from '../constants/theme';
 import { Header } from '../components/Header';
@@ -97,7 +97,17 @@ export const InventoryScreen: React.FC<{ navigation: any }> = ({ navigation }) =
         onBack={() => navigation.goBack()}
       />
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollPadding}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        style={{ flex: 1 }}
+      >
+        <ScrollView 
+          style={styles.content} 
+          showsVerticalScrollIndicator={false} 
+          contentContainerStyle={[styles.scrollPadding, { paddingBottom: 160 }]}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+        >
         {/* 1. Taşınmaz Seçimi */}
         <Text style={styles.sectionLabel}>1. TESLİM EDİLEN TAŞINMAZ</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.propScroll}>
@@ -257,7 +267,8 @@ export const InventoryScreen: React.FC<{ navigation: any }> = ({ navigation }) =
 
         <View style={{ height: 40 }} />
       </ScrollView>
-    </SafeAreaView>
+    </KeyboardAvoidingView>
+  </SafeAreaView>
   );
 };
 
@@ -271,6 +282,9 @@ const styles = StyleSheet.create({
   },
   scrollPadding: {
     padding: SPACING.md,
+    maxWidth: 640,
+    width: '100%',
+    alignSelf: 'center',
   },
   sectionLabel: {
     fontSize: 11,

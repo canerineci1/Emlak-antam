@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, Alert, Modal } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, Alert, Modal, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS, SPACING, RADIUS, SHADOWS } from '../constants/theme';
 import { Header } from '../components/Header';
@@ -284,7 +284,10 @@ export const TeamManagementScreen: React.FC<{ navigation: any }> = ({ navigation
 
       {/* YENİ DANIŞMAN EKLEME MODALI */}
       <Modal visible={showAddModal} animationType="slide" transparent>
-        <View style={styles.modalBackdrop}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={styles.modalBackdrop}
+        >
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Ekibe Yeni Danışman Ekle</Text>
@@ -293,7 +296,12 @@ export const TeamManagementScreen: React.FC<{ navigation: any }> = ({ navigation
               </TouchableOpacity>
             </View>
 
-            <ScrollView showsVerticalScrollIndicator={false}>
+            <ScrollView 
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+              keyboardDismissMode="on-drag"
+              contentContainerStyle={{ paddingBottom: 60 }}
+            >
               <Text style={styles.fieldLabel}>Danışman Ad Soyad</Text>
               <TextInput style={styles.input} value={name} onChangeText={setName} placeholder="Örn: Caner İneci" />
 
@@ -314,7 +322,7 @@ export const TeamManagementScreen: React.FC<{ navigation: any }> = ({ navigation
               </TouchableOpacity>
             </ScrollView>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
   );

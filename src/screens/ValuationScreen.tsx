@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, Alert, Switch } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, Alert, Switch, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS, SPACING, RADIUS, SHADOWS } from '../constants/theme';
 import { Header } from '../components/Header';
@@ -77,7 +77,17 @@ export const ValuationScreen: React.FC<{ navigation: any }> = ({ navigation }) =
         onBack={() => navigation.goBack()}
       />
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollPadding}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        style={{ flex: 1 }}
+      >
+        <ScrollView 
+          style={styles.content} 
+          showsVerticalScrollIndicator={false} 
+          contentContainerStyle={[styles.scrollPadding, { paddingBottom: 160 }]}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+        >
         {/* 1. DEĞERLEME SONUÇ HERO BANNER */}
         <View style={styles.heroResultBanner}>
           <Text style={styles.heroSubText}>HEDEF OPTİMUM SATIŞ DEĞERİ</Text>
@@ -247,7 +257,8 @@ export const ValuationScreen: React.FC<{ navigation: any }> = ({ navigation }) =
 
         <View style={{ height: 40 }} />
       </ScrollView>
-    </SafeAreaView>
+    </KeyboardAvoidingView>
+  </SafeAreaView>
   );
 };
 
