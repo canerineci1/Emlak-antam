@@ -6,7 +6,9 @@
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "deploy": "npx expo export -p web && wrangler deploy",
+    "preview": "npx expo export -p web && wrangler dev"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.2",
@@ -37,7 +39,8 @@
   "devDependencies": {
     "@babel/core": "^7.20.0",
     "@types/react": "~19.2.4",
-    "typescript": "~6.0.3"
+    "typescript": "~6.0.3",
+    "wrangler": "^3.112.0"
   },
   "private": true
 }

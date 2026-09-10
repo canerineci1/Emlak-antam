@@ -10,3 +10,9 @@ npm-debug.*
 *.orig.*
 web-build/
 .env*
+
+# wrangler files
+.wrangler
+.dev.vars*
+!.dev.vars.example
+!.env.example
