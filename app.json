@@ -15,10 +15,17 @@
       }
     },
     "android": {
+      "package": "com.canerineci.emlakcantam",
       "permissions": [
         "ACCESS_COARSE_LOCATION",
         "ACCESS_FINE_LOCATION",
-        "RECORD_AUDIO"
+        "RECORD_AUDIO",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"
       ]
     },
     "plugins": [
@@ -30,6 +37,11 @@
       ],
       "expo-audio",
       "expo-web-browser"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "07407118-3eb0-4354-bc27-8079c2273ca5"
+      }
+    }
   }
 }
