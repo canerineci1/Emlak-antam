@@ -9,8 +9,10 @@ import { calculateValuation, generateValuationPdf, ValuationInput } from '../ser
 
 export const ValuationScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const broker = store.getBroker();
+  const properties = store.getProperties();
+  const [selectedPropId, setSelectedPropId] = useState<string>('');
 
-  const [propertyTitle, setPropertyTitle] = useState('Moda Cad. 3+1 Balkonlu Satılık Daire');
+  const [propertyTitle, setPropertyTitle] = useState('Kadıköy Moda 3+1 Balkonlu Daire');
   const [city, setCity] = useState('İstanbul');
   const [district, setDistrict] = useState('Kadıköy');
   const [netM2, setNetM2] = useState('115');
@@ -44,6 +46,16 @@ export const ValuationScreen: React.FC<{ navigation: any }> = ({ navigation }) =
   };
 
   const result = calculateValuation(valuationInput);
+
+  const handleSelectProperty = (propId: string) => {
+    setSelectedPropId(propId);
+    const found = properties.find(p => p.id === propId);
+    if (found) {
+      setPropertyTitle(found.title);
+      setDistrict(found.district);
+      setCity(found.city);
+    }
+  };
 
   const handleGeneratePdf = async () => {
     setIsGenerating(true);
@@ -98,6 +110,27 @@ export const ValuationScreen: React.FC<{ navigation: any }> = ({ navigation }) =
           </View>
         </View>
 
+        {/* Portföyden Hızlı Doldurma */}
+        {properties.length > 0 && (
+          <>
+            <Text style={styles.sectionLabel}>PORTFÖYDEN HIZLI DOLDUR</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.propScroll}>
+              {properties.map(p => (
+                <TouchableOpacity
+                  key={p.id}
+                  activeOpacity={0.8}
+                  style={[styles.propChip, selectedPropId === p.id && styles.propChipActive]}
+                  onPress={() => handleSelectProperty(p.id)}
+                >
+                  <Text style={[styles.propChipText, selectedPropId === p.id && styles.propChipTextActive]}>
+                    {p.district} • {p.title}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </>
+        )}
+
         {/* 3. TAŞINMAZ KRİTERLERİ GİRİŞİ */}
         <Text style={styles.sectionLabel}>TAŞINMAZ KRİTERLERİ & PARAMETRELER</Text>
         <View style={styles.card}>
@@ -106,6 +139,8 @@ export const ValuationScreen: React.FC<{ navigation: any }> = ({ navigation }) =
             style={styles.input}
             value={propertyTitle}
             onChangeText={setPropertyTitle}
+            placeholder="Örn: Kadıköy Moda 3+1 Balkonlu Daire"
+            placeholderTextColor={COLORS.textMuted}
           />
 
           <View style={styles.twoCol}>
@@ -226,6 +261,36 @@ const styles = StyleSheet.create({
   },
   scrollPadding: {
     padding: SPACING.md,
+    maxWidth: 640,
+    width: '100%',
+    alignSelf: 'center',
+  },
+  propScroll: {
+    flexDirection: 'row',
+    marginBottom: SPACING.sm,
+  },
+  propChip: {
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: RADIUS.full,
+    marginRight: 8,
+    ...SHADOWS.sm,
+  },
+  propChipActive: {
+    backgroundColor: COLORS.primaryLight,
+    borderColor: COLORS.primary,
+  },
+  propChipText: {
+    fontSize: 12,
+    color: COLORS.text,
+    fontWeight: '600',
+  },
+  propChipTextActive: {
+    color: COLORS.primaryDark,
+    fontWeight: '800',
   },
   heroResultBanner: {
     backgroundColor: COLORS.primary,

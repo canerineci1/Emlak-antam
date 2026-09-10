@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS, SPACING, RADIUS, SHADOWS } from '../constants/theme';
@@ -14,7 +14,7 @@ export const NewContractScreen: React.FC<{ navigation: any }> = ({ navigation })
   const [contractType, setContractType] = useState<ContractType>('YER_GOSTERME');
 
   // 2. Taşınmaz Seçimi
-  const [selectedPropId, setSelectedPropId] = useState<string>(properties[0]?.id || '');
+  const [selectedPropId, setSelectedPropId] = useState<string>(properties[0]?.id || 'custom');
   const [customAddress, setCustomAddress] = useState('');
   const [customTitle, setCustomTitle] = useState('');
   const [customPrice, setCustomPrice] = useState('');
@@ -159,6 +159,62 @@ export const NewContractScreen: React.FC<{ navigation: any }> = ({ navigation })
           </TouchableOpacity>
         ))}
 
+        {/* Manuel Taşınmaz Seçeneği */}
+        <TouchableOpacity
+          activeOpacity={0.85}
+          style={[
+            styles.propOptionCard,
+            selectedPropId === 'custom' && styles.propOptionCardActive
+          ]}
+          onPress={() => setSelectedPropId('custom')}
+        >
+          <View style={[styles.radioCircle, selectedPropId === 'custom' && styles.radioCircleActive]}>
+            {selectedPropId === 'custom' && <View style={styles.radioInner} />}
+          </View>
+          <View style={styles.propTextCol}>
+            <Text style={styles.propTitle}>+ Manuel / Yeni Taşınmaz Gir</Text>
+            <Text style={styles.propMeta}>Portföy harici özel mülk girişi</Text>
+          </View>
+        </TouchableOpacity>
+
+        {selectedPropId === 'custom' && (
+          <View style={[styles.inputCard, { marginTop: 6 }]}>
+            <View style={styles.fieldGroup}>
+              <Text style={styles.inputLabel}>Taşınmaz Başlığı *</Text>
+              <TextInput
+                style={styles.textInput}
+                placeholder="Örn: Kadıköy Moda 3+1 Balkonlu Daire"
+                placeholderTextColor={COLORS.textMuted}
+                value={customTitle}
+                onChangeText={setCustomTitle}
+              />
+            </View>
+
+            <View style={styles.fieldGroup}>
+              <Text style={styles.inputLabel}>Açık Adres / Ada Parsel *</Text>
+              <TextInput
+                style={styles.textInput}
+                placeholder="Örn: Caferağa Mah. Moda Cad. No:12 D:4 Kadıköy"
+                placeholderTextColor={COLORS.textMuted}
+                value={customAddress}
+                onChangeText={setCustomAddress}
+              />
+            </View>
+
+            <View style={styles.fieldGroupLast}>
+              <Text style={styles.inputLabel}>Satış / Kiralama Fiyatı (TL)</Text>
+              <TextInput
+                style={styles.textInput}
+                placeholder="Örn: 9.500.000"
+                placeholderTextColor={COLORS.textMuted}
+                keyboardType="numeric"
+                value={customPrice}
+                onChangeText={setCustomPrice}
+              />
+            </View>
+          </View>
+        )}
+
         {/* 3. TARAF / MÜŞTERİ BİLGİLERİ */}
         <Text style={[styles.sectionLabel, { marginTop: SPACING.lg }]}>
           {contractType === 'YETKI_BELGESI' ? 'MÜLK SAHİBİ (MALİK) BİLGİLERİ' : 'ALICI / KİRACI BİLGİLERİ'}
@@ -273,6 +329,9 @@ const styles = StyleSheet.create({
   },
   scrollPadding: {
     padding: SPACING.md,
+    maxWidth: 640,
+    width: '100%',
+    alignSelf: 'center',
   },
   sectionLabel: {
     fontSize: 11,

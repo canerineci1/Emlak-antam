@@ -1,4 +1,4 @@
-﻿export interface CalculationInput {
+export interface CalculationInput {
   propertyPrice: number;
   loanAmount: number;
   monthlyInterestRate: number; // örn: 2.89 (%)
@@ -10,9 +10,9 @@ export interface CalculationResult {
   buyerDeedFee: number; // %2
   sellerDeedFee: number; // %2
   totalDeedFee: number; // %4
-  revolvingFund: number; // %6 Döner Sermaye Bedeli
+  revolvingFund: number; // %4 Tapu Harcı & Masraflar
   brokerCommission: number; // %2 + %20 KDV
-  totalBuyerExpenses: number; // Alıcı Tapu Harcı + %6 Döner Sermaye + Komisyon
+  totalBuyerExpenses: number; // Alıcı Tapu Harcı + %4 Tapu Harcı/Masraflar + Komisyon
   
   // Kredi Hesapları
   loanAmount: number;
@@ -32,8 +32,8 @@ export function calculateRealEstateExpenses(input: CalculationInput): Calculatio
   const sellerDeedFee = Math.round(propertyPrice * 0.02);
   const totalDeedFee = buyerDeedFee + sellerDeedFee;
   
-  // Döner Sermaye Bedeli: %6
-  const revolvingFund = Math.round(propertyPrice * 0.06);
+  // Tapu Harcı & Masraflar: %4
+  const revolvingFund = Math.round(propertyPrice * 0.04);
   
   const brokerCommission = Math.round(propertyPrice * 0.02 * 1.20); // %2 + %20 KDV
   const totalBuyerExpenses = buyerDeedFee + revolvingFund + brokerCommission;
@@ -79,7 +79,7 @@ ${propertyTitle ? `🏠 *Taşınmaz:* ${propertyTitle}\n` : ''}
 
 📋 *1. TAPU VE ALIM MASRAFLARI:*
 • Alıcı Tapu Harcı (%2): ${res.buyerDeedFee.toLocaleString('tr-TR')} TL
-• Döner Sermaye Bedeli (%6): ${res.revolvingFund.toLocaleString('tr-TR')} TL
+• Tapu Harcı & Masraflar (%4): ${res.revolvingFund.toLocaleString('tr-TR')} TL
 • Hizmet Komisyonu (%2 + KDV): ${res.brokerCommission.toLocaleString('tr-TR')} TL
 📌 *Toplam Alıcı Masrafı:* *${res.totalBuyerExpenses.toLocaleString('tr-TR')} TL*
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, StatusBar, ScrollView, Alert } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, StatusBar, ScrollView, Alert, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS, SPACING, RADIUS, SHADOWS } from '../constants/theme';
 import { Header } from '../components/Header';
@@ -12,6 +12,9 @@ import { subscribeAuth, getCurrentUser, UserProfile } from '../services/authServ
 import { Ionicons } from '@expo/vector-icons';
 
 export const HomeScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
+  const { width } = useWindowDimensions();
+  const isSmallScreen = width < 360;
+
   const [contracts, setContracts] = useState<Contract[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFilter, setSelectedFilter] = useState<'ALL' | ContractType>('ALL');
@@ -157,118 +160,118 @@ export const HomeScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
           {/* Tahliye Taahhüdü */}
           <TouchableOpacity
             activeOpacity={0.85}
-            style={[styles.bentoCard, { backgroundColor: '#FEF2F2', borderColor: '#FECACA' }]}
+            style={[styles.bentoCard, isSmallScreen && styles.bentoCardSmall, { backgroundColor: '#FEF2F2', borderColor: '#FECACA' }]}
             onPress={() => navigation.navigate('Eviction')}
           >
             <View style={[styles.bentoIconBox, { backgroundColor: '#DC2626' }]}>
               <Ionicons name="document-text" size={16} color="#FFFFFF" />
             </View>
-            <Text style={styles.bentoTitle}>Tahliye Taahhüdü</Text>
-            <Text style={styles.bentoSub}>TBK m. 352</Text>
+            <Text style={styles.bentoTitle} numberOfLines={1}>Tahliye Taahhüdü</Text>
+            <Text style={styles.bentoSub} numberOfLines={1}>TBK m. 352</Text>
           </TouchableOpacity>
 
           {/* Emsal Değerleme (CMA) */}
           <TouchableOpacity
             activeOpacity={0.85}
-            style={[styles.bentoCard, { backgroundColor: '#EFF6FF', borderColor: '#BFDBFE' }]}
+            style={[styles.bentoCard, isSmallScreen && styles.bentoCardSmall, { backgroundColor: '#EFF6FF', borderColor: '#BFDBFE' }]}
             onPress={() => navigation.navigate('Valuation')}
           >
             <View style={[styles.bentoIconBox, { backgroundColor: '#2563EB' }]}>
               <Ionicons name="analytics" size={16} color="#FFFFFF" />
             </View>
-            <Text style={styles.bentoTitle}>Emsal Değerleme</Text>
-            <Text style={styles.bentoSub}>CMA Ekspertiz</Text>
+            <Text style={styles.bentoTitle} numberOfLines={1}>Emsal Değerleme</Text>
+            <Text style={styles.bentoSub} numberOfLines={1}>CMA Ekspertiz</Text>
           </TouchableOpacity>
 
           {/* Müşteri Rehberi (Lead Hub) */}
           <TouchableOpacity
             activeOpacity={0.85}
-            style={[styles.bentoCard, { backgroundColor: '#ECFDF5', borderColor: '#A7F3D0' }]}
+            style={[styles.bentoCard, isSmallScreen && styles.bentoCardSmall, { backgroundColor: '#ECFDF5', borderColor: '#A7F3D0' }]}
             onPress={() => navigation.navigate('LeadHub')}
           >
             <View style={[styles.bentoIconBox, { backgroundColor: '#059669' }]}>
               <Ionicons name="people" size={16} color="#FFFFFF" />
             </View>
-            <Text style={styles.bentoTitle}>Müşteri Rehberi</Text>
-            <Text style={styles.bentoSub}>CRM Leads</Text>
+            <Text style={styles.bentoTitle} numberOfLines={1}>Müşteri Rehberi</Text>
+            <Text style={styles.bentoSub} numberOfLines={1}>CRM Leads</Text>
           </TouchableOpacity>
 
           {/* Sesli Not AI */}
           <TouchableOpacity
             activeOpacity={0.85}
-            style={[styles.bentoCard, { backgroundColor: '#F3E8FF', borderColor: '#E9D5FF' }]}
+            style={[styles.bentoCard, isSmallScreen && styles.bentoCardSmall, { backgroundColor: '#F3E8FF', borderColor: '#E9D5FF' }]}
             onPress={() => navigation.navigate('VoiceMemo')}
           >
             <View style={[styles.bentoIconBox, { backgroundColor: '#9333EA' }]}>
               <Ionicons name="mic" size={16} color="#FFFFFF" />
             </View>
-            <Text style={styles.bentoTitle}>Sesli Not AI</Text>
-            <Text style={styles.bentoSub}>Whisper Large v3</Text>
+            <Text style={styles.bentoTitle} numberOfLines={1}>Sesli Not AI</Text>
+            <Text style={styles.bentoSub} numberOfLines={1}>Whisper Large v3</Text>
           </TouchableOpacity>
 
           {/* Alıcı Radarı */}
           <TouchableOpacity
             activeOpacity={0.85}
-            style={[styles.bentoCard, { backgroundColor: COLORS.accentLight, borderColor: '#A7F3D0' }]}
+            style={[styles.bentoCard, isSmallScreen && styles.bentoCardSmall, { backgroundColor: COLORS.accentLight, borderColor: '#A7F3D0' }]}
             onPress={() => navigation.navigate('SmartMatch')}
           >
             <View style={[styles.bentoIconBox, { backgroundColor: COLORS.accent }]}>
               <Ionicons name="locate" size={16} color="#FFFFFF" />
             </View>
-            <Text style={styles.bentoTitle}>Alıcı Radarı</Text>
-            <Text style={styles.bentoSub}>Akıllı Eşleşme</Text>
+            <Text style={styles.bentoTitle} numberOfLines={1}>Alıcı Radarı</Text>
+            <Text style={styles.bentoSub} numberOfLines={1}>Akıllı Eşleşme</Text>
           </TouchableOpacity>
 
           {/* AI İlan & Reels */}
           <TouchableOpacity
             activeOpacity={0.85}
-            style={[styles.bentoCard, { backgroundColor: COLORS.violetLight, borderColor: '#DDD6FE' }]}
+            style={[styles.bentoCard, isSmallScreen && styles.bentoCardSmall, { backgroundColor: COLORS.violetLight, borderColor: '#DDD6FE' }]}
             onPress={() => navigation.navigate('AiCopywriter')}
           >
             <View style={[styles.bentoIconBox, { backgroundColor: COLORS.violet }]}>
               <Ionicons name="sparkles" size={16} color="#FFFFFF" />
             </View>
-            <Text style={styles.bentoTitle}>AI İlan & Reels</Text>
-            <Text style={styles.bentoSub}>Sosyal Medya</Text>
+            <Text style={styles.bentoTitle} numberOfLines={1}>AI İlan & Reels</Text>
+            <Text style={styles.bentoSub} numberOfLines={1}>Sosyal Medya</Text>
           </TouchableOpacity>
 
           {/* Yasal Kira Artış Motoru */}
           <TouchableOpacity
             activeOpacity={0.85}
-            style={[styles.bentoCard, { backgroundColor: '#F0FDF4', borderColor: '#BBF7D0' }]}
+            style={[styles.bentoCard, isSmallScreen && styles.bentoCardSmall, { backgroundColor: '#F0FDF4', borderColor: '#BBF7D0' }]}
             onPress={() => navigation.navigate('RentIncrease')}
           >
             <View style={[styles.bentoIconBox, { backgroundColor: '#16A34A' }]}>
               <Ionicons name="trending-up" size={16} color="#FFFFFF" />
             </View>
-            <Text style={styles.bentoTitle}>Kira Artışı</Text>
-            <Text style={styles.bentoSub}>TÜİK TÜFE Tavanı</Text>
+            <Text style={styles.bentoTitle} numberOfLines={1}>Kira Artışı</Text>
+            <Text style={styles.bentoSub} numberOfLines={1}>TÜİK TÜFE Tavanı</Text>
           </TouchableOpacity>
 
           {/* Harç & Kredi Motoru */}
           <TouchableOpacity
             activeOpacity={0.85}
-            style={[styles.bentoCard, { backgroundColor: '#FEF3C7', borderColor: '#FDE68A' }]}
+            style={[styles.bentoCard, isSmallScreen && styles.bentoCardSmall, { backgroundColor: '#FEF3C7', borderColor: '#FDE68A' }]}
             onPress={() => navigation.navigate('Calculator')}
           >
             <View style={[styles.bentoIconBox, { backgroundColor: '#D97706' }]}>
               <Ionicons name="calculator" size={16} color="#FFFFFF" />
             </View>
-            <Text style={styles.bentoTitle}>Harç & Kredi</Text>
-            <Text style={styles.bentoSub}>%6 Döner Sermaye</Text>
+            <Text style={styles.bentoTitle} numberOfLines={1}>Harç & Kredi</Text>
+            <Text style={styles.bentoSub} numberOfLines={1}>%4 Tapu Harcı</Text>
           </TouchableOpacity>
 
           {/* Demirbaş Teslim Tutanağı */}
           <TouchableOpacity
             activeOpacity={0.85}
-            style={[styles.bentoCard, { backgroundColor: '#FDF2F8', borderColor: '#FBCFE8' }]}
+            style={[styles.bentoCard, isSmallScreen && styles.bentoCardSmall, { backgroundColor: '#FDF2F8', borderColor: '#FBCFE8' }]}
             onPress={() => navigation.navigate('Inventory')}
           >
             <View style={[styles.bentoIconBox, { backgroundColor: '#DB2777' }]}>
               <Ionicons name="clipboard" size={16} color="#FFFFFF" />
             </View>
-            <Text style={styles.bentoTitle}>Demirbaş Tutanağı</Text>
-            <Text style={styles.bentoSub}>Sayaç & Hasar</Text>
+            <Text style={styles.bentoTitle} numberOfLines={1}>Demirbaş Tutanağı</Text>
+            <Text style={styles.bentoSub} numberOfLines={1}>Sayaç & Hasar</Text>
           </TouchableOpacity>
         </View>
 
@@ -377,6 +380,9 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: SPACING.md,
+    maxWidth: 640,
+    width: '100%',
+    alignSelf: 'center',
   },
   headerIconBtn: {
     width: 36,
@@ -478,13 +484,16 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.lg,
   },
   bentoCard: {
-    width: '31.5%',
+    width: '31.3%',
     padding: SPACING.sm,
     borderRadius: RADIUS.md,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
     minHeight: 88,
+  },
+  bentoCardSmall: {
+    width: '48.5%',
   },
   bentoIconBox: {
     width: 30,

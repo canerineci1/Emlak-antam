@@ -91,7 +91,7 @@ export const CalculatorScreen: React.FC<{ navigation: any }> = ({ navigation }) 
           </View>
 
           <View style={styles.rowInputs}>
-            <View style={[styles.fieldGroup, { flex: 1 }]}>
+            <View style={[styles.fieldGroup, { flex: 1.5 }]}>
               <Text style={styles.inputLabel}>Kredi Tutarı (TL)</Text>
               <TextInput
                 style={styles.textInput}
@@ -103,7 +103,7 @@ export const CalculatorScreen: React.FC<{ navigation: any }> = ({ navigation }) 
               />
             </View>
 
-            <View style={[styles.fieldGroup, { width: 90 }]}>
+            <View style={[styles.fieldGroup, { flex: 1 }]}>
               <Text style={styles.inputLabel}>Aylık Faiz %</Text>
               <TextInput
                 style={styles.textInput}
@@ -115,7 +115,7 @@ export const CalculatorScreen: React.FC<{ navigation: any }> = ({ navigation }) 
               />
             </View>
 
-            <View style={[styles.fieldGroup, { width: 80 }]}>
+            <View style={[styles.fieldGroup, { flex: 0.9 }]}>
               <Text style={styles.inputLabel}>Vade (Ay)</Text>
               <TextInput
                 style={styles.textInput}
@@ -150,7 +150,7 @@ export const CalculatorScreen: React.FC<{ navigation: any }> = ({ navigation }) 
           </View>
 
           <View style={styles.expenseRow}>
-            <Text style={styles.expenseLabel}>Döner Sermaye Bedeli (%6):</Text>
+            <Text style={styles.expenseLabel}>Tapu Harcı & Masraflar (%4):</Text>
             <Text style={styles.expenseVal}>{result.revolvingFund.toLocaleString('tr-TR')} TL</Text>
           </View>
 
@@ -205,6 +205,9 @@ const styles = StyleSheet.create({
   },
   scrollPadding: {
     padding: SPACING.md,
+    maxWidth: 640,
+    width: '100%',
+    alignSelf: 'center',
   },
   sectionLabel: {
     fontSize: 11,

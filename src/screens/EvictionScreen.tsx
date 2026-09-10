@@ -8,17 +8,19 @@ import { validateEvictionDates, generateEvictionPdf, EvictionData } from '../ser
 
 export const EvictionScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   // Form State
-  const [landlordName, setLandlordName] = useState('Mehmet Özkan');
-  const [landlordTc, setLandlordTc] = useState('28471928402');
-  const [tenantName, setTenantName] = useState('Caner İneci');
-  const [tenantTc, setTenantTc] = useState('11928471029');
-  const [tenantPhone, setTenantPhone] = useState('0532 111 22 33');
-  const [propertyAddress, setPropertyAddress] = useState('Kadıköy, Caferağa Mah. Moda Cad. No:44 D:8 İstanbul');
+  const [landlordName, setLandlordName] = useState('');
+  const [landlordTc, setLandlordTc] = useState('');
+  const [tenantName, setTenantName] = useState('');
+  const [tenantTc, setTenantTc] = useState('');
+  const [tenantPhone, setTenantPhone] = useState('');
+  const [propertyAddress, setPropertyAddress] = useState('');
   
   // Yasal Tarihler (GG.AA.YYYY)
-  const [leaseStartDate, setLeaseStartDate] = useState('01.09.2025');
-  const [commitmentDate, setCommitmentDate] = useState('15.09.2025'); // Kira başlangıcından sonra!
-  const [evictionDate, setEvictionDate] = useState('01.09.2026');
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const [leaseStartDate, setLeaseStartDate] = useState(`01.01.${currentYear}`);
+  const [commitmentDate, setCommitmentDate] = useState(`15.01.${currentYear}`); // Kira başlangıcından sonra!
+  const [evictionDate, setEvictionDate] = useState(`01.01.${currentYear + 1}`);
   const [penaltyPerDay, setPenaltyPerDay] = useState('2.500');
 
   // Eş / Kefil Muvafakati
@@ -99,7 +101,8 @@ export const EvictionScreen: React.FC<{ navigation: any }> = ({ navigation }) =>
             style={styles.input}
             value={landlordName}
             onChangeText={setLandlordName}
-            placeholder="Malik Ad Soyad"
+            placeholder="Örn: Mehmet Özkan"
+            placeholderTextColor={COLORS.textMuted}
           />
 
           <Text style={styles.fieldLabel}>Malik T.C. Kimlik No</Text>
@@ -107,6 +110,8 @@ export const EvictionScreen: React.FC<{ navigation: any }> = ({ navigation }) =>
             style={styles.input}
             value={landlordTc}
             onChangeText={setLandlordTc}
+            placeholder="11 haneli T.C. Kimlik No"
+            placeholderTextColor={COLORS.textMuted}
             keyboardType="numeric"
             maxLength={11}
           />
@@ -118,7 +123,8 @@ export const EvictionScreen: React.FC<{ navigation: any }> = ({ navigation }) =>
             style={styles.input}
             value={tenantName}
             onChangeText={setTenantName}
-            placeholder="Kiracı Ad Soyad"
+            placeholder="Örn: Caner İneci"
+            placeholderTextColor={COLORS.textMuted}
           />
 
           <View style={styles.rowInputs}>
@@ -128,6 +134,8 @@ export const EvictionScreen: React.FC<{ navigation: any }> = ({ navigation }) =>
                 style={styles.input}
                 value={tenantTc}
                 onChangeText={setTenantTc}
+                placeholder="Kiracı T.C."
+                placeholderTextColor={COLORS.textMuted}
                 keyboardType="numeric"
                 maxLength={11}
               />
@@ -139,6 +147,8 @@ export const EvictionScreen: React.FC<{ navigation: any }> = ({ navigation }) =>
                 style={styles.input}
                 value={tenantPhone}
                 onChangeText={setTenantPhone}
+                placeholder="0532 000 00 00"
+                placeholderTextColor={COLORS.textMuted}
                 keyboardType="phone-pad"
               />
             </View>
@@ -149,6 +159,8 @@ export const EvictionScreen: React.FC<{ navigation: any }> = ({ navigation }) =>
             style={[styles.input, { minHeight: 60 }]}
             value={propertyAddress}
             onChangeText={setPropertyAddress}
+            placeholder="Örn: Kadıköy, Caferağa Mah. Moda Cad. No:44 D:8 İstanbul"
+            placeholderTextColor={COLORS.textMuted}
             multiline
           />
         </View>
@@ -256,6 +268,9 @@ const styles = StyleSheet.create({
   },
   scrollPadding: {
     padding: SPACING.md,
+    maxWidth: 640,
+    width: '100%',
+    alignSelf: 'center',
   },
   legalBanner: {
     flexDirection: 'row',

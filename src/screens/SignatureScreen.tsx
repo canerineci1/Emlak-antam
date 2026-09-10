@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, Modal, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS, SPACING, RADIUS, SHADOWS } from '../constants/theme';
@@ -128,7 +128,11 @@ export const SignatureScreen: React.FC<{ route: any; navigation: any }> = ({ rou
         onBack={() => navigation.goBack()}
       />
 
-      <View style={styles.content}>
+      <ScrollView 
+        style={styles.content} 
+        contentContainerStyle={styles.scrollPadding}
+        showsVerticalScrollIndicator={false}
+      >
         {/* GPS & Yasal Damga Kartı */}
         <View style={styles.gpsBannerCard}>
           <View style={styles.gpsHeaderRow}>
@@ -219,7 +223,9 @@ export const SignatureScreen: React.FC<{ route: any; navigation: any }> = ({ rou
             )}
           </TouchableOpacity>
         </View>
-      </View>
+
+        <View style={{ height: 30 }} />
+      </ScrollView>
 
       {/* KVKK AYDINLATMA METNİ MODALI */}
       <Modal visible={kvkkModalVisible} animationType="slide" transparent>
@@ -259,7 +265,12 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
+  },
+  scrollPadding: {
     padding: SPACING.md,
+    maxWidth: 640,
+    width: '100%',
+    alignSelf: 'center',
   },
   gpsBannerCard: {
     backgroundColor: COLORS.surface,
@@ -326,8 +337,7 @@ const styles = StyleSheet.create({
     color: COLORS.text,
   },
   canvasWrapper: {
-    flex: 1,
-    minHeight: 190,
+    height: 210,
     borderRadius: RADIUS.lg,
     overflow: 'hidden',
     backgroundColor: '#FFFFFF',

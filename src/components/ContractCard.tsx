@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Contract } from '../types';
 import { COLORS, SPACING, RADIUS, SHADOWS } from '../constants/theme';
@@ -114,6 +114,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: SPACING.sm,
+    flexWrap: 'wrap',
+    gap: 6,
   },
   typeBadge: {
     flexDirection: 'row',
@@ -156,6 +158,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: COLORS.text,
     letterSpacing: -0.2,
+    lineHeight: 20,
   },
   locationRow: {
     flexDirection: 'row',
@@ -177,6 +180,7 @@ const styles = StyleSheet.create({
     padding: SPACING.sm,
     marginVertical: SPACING.sm,
     gap: 10,
+    flexWrap: 'wrap',
   },
   avatar: {
     width: 32,

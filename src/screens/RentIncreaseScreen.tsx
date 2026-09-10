@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, Linking, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS, SPACING, RADIUS, SHADOWS } from '../constants/theme';
@@ -12,8 +12,8 @@ export const RentIncreaseScreen: React.FC<{ navigation: any }> = ({ navigation }
 
   const [currentRentStr, setCurrentRentStr] = useState('25000');
   const [tufeRateStr, setTufeRateStr] = useState('60.45');
-  const [tenantName, setTenantName] = useState('Kemal Bey');
-  const [landlordName, setLandlordName] = useState('Ayşe Hanım');
+  const [tenantName, setTenantName] = useState('');
+  const [landlordName, setLandlordName] = useState('');
   const [selectedPropId, setSelectedPropId] = useState<string>('');
 
   const currentRent = parseFloat(currentRentStr.replace(/\./g, '').replace(/,/g, '')) || 0;
@@ -134,7 +134,7 @@ export const RentIncreaseScreen: React.FC<{ navigation: any }> = ({ navigation }
                 style={styles.textInput}
                 value={tenantName}
                 onChangeText={setTenantName}
-                placeholder="Kemal Bey"
+                placeholder="Örn: Kemal Bey"
                 placeholderTextColor={COLORS.textMuted}
               />
             </View>
@@ -145,7 +145,7 @@ export const RentIncreaseScreen: React.FC<{ navigation: any }> = ({ navigation }
                 style={styles.textInput}
                 value={landlordName}
                 onChangeText={setLandlordName}
-                placeholder="Ayşe Hanım"
+                placeholder="Örn: Ayşe Hanım"
                 placeholderTextColor={COLORS.textMuted}
               />
             </View>
@@ -206,6 +206,9 @@ const styles = StyleSheet.create({
   },
   scrollPadding: {
     padding: SPACING.md,
+    maxWidth: 640,
+    width: '100%',
+    alignSelf: 'center',
   },
   sectionLabel: {
     fontSize: 11,
