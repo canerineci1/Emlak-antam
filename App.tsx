@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { View, ActivityIndicator } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -26,6 +27,8 @@ import { ValuationScreen } from './src/screens/ValuationScreen';
 import { LeadHubScreen } from './src/screens/LeadHubScreen';
 import { TeamManagementScreen } from './src/screens/TeamManagementScreen';
 import { LoginScreen } from './src/screens/LoginScreen';
+import { LandingScreen } from './src/screens/LandingScreen';
+import { OnboardingScreen } from './src/screens/OnboardingScreen';
 import { subscribeAuth, loadSavedAuth, UserProfile } from './src/services/authService';
 import { COLORS } from './src/constants/theme';
 
@@ -98,23 +101,77 @@ function TabNavigator() {
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
+  const [showAuthScreen, setShowAuthScreen] = useState(false);
 
   useEffect(() => {
-    loadSavedAuth().then(user => setCurrentUser(user));
+    loadSavedAuth()
+      .then(user => {
+        setCurrentUser(user);
+        setIsAuthLoading(false);
+      })
+      .catch(() => {
+        setIsAuthLoading(false);
+      });
+
     const unsubscribe = subscribeAuth(user => {
       setCurrentUser(user);
+      setIsAuthLoading(false);
     });
     return unsubscribe;
   }, []);
 
-  if (!currentUser?.isLoggedIn) {
+  // 1. AÇILIŞ VE KALICI OTURUM YÜKLENİYOR
+  if (isAuthLoading) {
     return (
       <SafeAreaProvider>
-        <StatusBar style="dark" />
-        <LoginScreen />
+        <StatusBar style="light" />
+        <View style={{ flex: 1, backgroundColor: '#0F172A', alignItems: 'center', justifyContent: 'center' }}>
+          <ActivityIndicator size="large" color={COLORS.primary} />
+        </View>
       </SafeAreaProvider>
     );
   }
+
+  // 2. OTURUM AÇILMAMIŞ: LANDING VEYA AUTH
+  if (!currentUser?.isLoggedIn) {
+    if (showAuthScreen) {
+      return (
+        <SafeAreaProvider>
+          <StatusBar style="light" />
+          <LoginScreen
+            onBackToLanding={() => setShowAuthScreen(false)}
+            onLoginSuccess={() => setShowAuthScreen(false)}
+          />
+        </SafeAreaProvider>
+      );
+    }
+
+    return (
+      <SafeAreaProvider>
+        <StatusBar style="light" />
+        <LandingScreen
+          onStart={() => setShowAuthScreen(true)}
+          onLogin={() => setShowAuthScreen(true)}
+        />
+      </SafeAreaProvider>
+    );
+  }
+
+  // 3. İLK GİRİŞ VE ONBOARDING KURULUM SİHİRBAZI
+  if (!currentUser.hasCompletedOnboarding) {
+    return (
+      <SafeAreaProvider>
+        <StatusBar style="dark" />
+        <OnboardingScreen
+          onComplete={() => {}}
+          onSkip={() => {}}
+        />
+      </SafeAreaProvider>
+    );
+  }
+
+  // 4. TAM KURULMUŞ OFİS VE ANA UYGULAMA PANELİ
 
   return (
     <SafeAreaProvider>

@@ -6,7 +6,7 @@ import { Header } from '../components/Header';
 import { store } from '../services/storageService';
 import { Ionicons } from '@expo/vector-icons';
 import { getSavedFirebaseConfig, saveFirebaseConfig, FirebaseCustomConfig } from '../services/firebaseSyncService';
-import { getCurrentUser, subscribeAuth, switchRole, logout, UserProfile } from '../services/authService';
+import { getCurrentUser, subscribeAuth, switchRole, logout, resetOnboarding, UserProfile } from '../services/authService';
 import { checkFirebaseConnection, FirebaseConnectionStatus } from '../config/firebase';
 
 export const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
@@ -111,6 +111,22 @@ export const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => 
           style: 'destructive',
           onPress: async () => {
             await logout();
+          }
+        }
+      ]
+    );
+  };
+
+  const handleRestartOnboarding = () => {
+    Alert.alert(
+      'Kurulum Turunu Başlat',
+      'Profil, uzmanlık alanı ve saha süper güçleri kurulum sihirbazını yeniden başlatmak istiyor musunuz?',
+      [
+        { text: 'Vazgeç', style: 'cancel' },
+        {
+          text: 'Başlat',
+          onPress: async () => {
+            await resetOnboarding();
           }
         }
       ]
@@ -301,6 +317,16 @@ export const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => 
         <TouchableOpacity activeOpacity={0.88} style={styles.saveBtn} onPress={handleSave}>
           <Ionicons name="save" size={18} color="#FFFFFF" />
           <Text style={styles.saveBtnText}>Yasal Bilgileri Kaydet</Text>
+        </TouchableOpacity>
+
+        {/* ONBOARDING TURUNU TEKRAR ET */}
+        <TouchableOpacity
+          activeOpacity={0.88}
+          style={styles.onboardingRestartBtn}
+          onPress={handleRestartOnboarding}
+        >
+          <Ionicons name="sparkles" size={17} color={COLORS.primary} />
+          <Text style={styles.onboardingRestartBtnText}>Kurulum Sihirbazını & Turu Başlat</Text>
         </TouchableOpacity>
 
         {/* OTURUMU KAPAT BUTONU */}
@@ -586,6 +612,23 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 14,
     fontWeight: '800',
+  },
+  onboardingRestartBtn: {
+    backgroundColor: '#EFF6FF',
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 13,
+    borderRadius: RADIUS.md,
+    gap: 8,
+    marginTop: SPACING.md,
+  },
+  onboardingRestartBtnText: {
+    color: COLORS.primary,
+    fontSize: 13.5,
+    fontWeight: '700',
   },
   logoutBtn: {
     backgroundColor: '#FEF2F2',

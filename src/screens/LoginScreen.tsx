@@ -33,7 +33,10 @@ import {
 } from '../services/authService';
 import { checkFirebaseConnection, FirebaseConnectionStatus } from '../config/firebase';
 
-export const LoginScreen: React.FC<{ onLoginSuccess?: () => void }> = ({ onLoginSuccess }) => {
+export const LoginScreen: React.FC<{
+  onLoginSuccess?: () => void;
+  onBackToLanding?: () => void;
+}> = ({ onLoginSuccess, onBackToLanding }) => {
   const { width, height } = useWindowDimensions();
   const isSmallDevice = width < 375 || height < 700;
   const isTablet = width >= 768;
@@ -288,6 +291,19 @@ export const LoginScreen: React.FC<{ onLoginSuccess?: () => void }> = ({ onLogin
       {/* 1. RESPONSIVE HERO HEADER */}
       <View style={[styles.heroHeader, { paddingVertical: isSmallDevice ? SPACING.sm : SPACING.md }]}>
         <SafeAreaView edges={['top']}>
+          {onBackToLanding && (
+            <TouchableOpacity
+              activeOpacity={0.75}
+              style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10, paddingVertical: 4 }}
+              onPress={onBackToLanding}
+            >
+              <Ionicons name="arrow-back" size={17} color="#94A3B8" />
+              <Text style={{ fontSize: 12.5, color: '#94A3B8', fontWeight: '600', marginLeft: 6 }}>
+                Tanıtım & Karşılama Sayfasına Dön
+              </Text>
+            </TouchableOpacity>
+          )}
+
           <View style={styles.topBadgeRow}>
             <View style={styles.microPill}>
               <View style={styles.livePulseDot} />

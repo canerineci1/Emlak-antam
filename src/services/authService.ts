@@ -29,6 +29,9 @@ export interface UserProfile {
   avatarUrl?: string;
   isLoggedIn: boolean;
   authProvider?: 'GOOGLE' | 'PHONE' | 'EMAIL';
+  hasCompletedOnboarding?: boolean;
+  city?: string;
+  specialization?: string[];
 }
 
 export interface GoogleProfileData {
@@ -50,7 +53,10 @@ const INITIAL_EMPTY_USER: UserProfile = {
   roleTitle: 'Gayrimenkul Danışmanı',
   agencyName: 'EmlakÇantam Gayrimenkul',
   licenseNumber: '',
-  isLoggedIn: false
+  isLoggedIn: false,
+  hasCompletedOnboarding: false,
+  city: 'İstanbul',
+  specialization: ['Konut', 'Kiralık & Satılık'],
 };
 
 let currentUser: UserProfile = { ...INITIAL_EMPTY_USER };
@@ -614,5 +620,36 @@ export async function logout(): Promise<void> {
 
 export function getCurrentUser(): UserProfile {
   return currentUser;
+}
+
+// ONBOARDING TAMAMLA
+export async function completeOnboarding(data: {
+  name?: string;
+  agencyName?: string;
+  city?: string;
+  licenseNumber?: string;
+  specialization?: string[];
+}): Promise<UserProfile> {
+  const updated: UserProfile = {
+    ...currentUser,
+    name: data.name?.trim() || currentUser.name,
+    agencyName: data.agencyName?.trim() || currentUser.agencyName,
+    city: data.city?.trim() || currentUser.city,
+    licenseNumber: data.licenseNumber?.trim() || currentUser.licenseNumber,
+    specialization: data.specialization || currentUser.specialization,
+    hasCompletedOnboarding: true
+  };
+  await persistAuth(updated);
+  return updated;
+}
+
+// ONBOARDING SIFIRLA (TURU TEKRAR ETMEK İÇİN)
+export async function resetOnboarding(): Promise<UserProfile> {
+  const updated: UserProfile = {
+    ...currentUser,
+    hasCompletedOnboarding: false
+  };
+  await persistAuth(updated);
+  return updated;
 }
 

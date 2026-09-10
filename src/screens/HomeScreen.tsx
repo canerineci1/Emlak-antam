@@ -22,16 +22,24 @@ export const HomeScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const broker = store.getBroker();
 
   const [currentUser, setCurrentUser] = useState<UserProfile>(getCurrentUser());
+  const [propertiesCount, setPropertiesCount] = useState(store.getProperties().length);
+  const [demandsCount, setDemandsCount] = useState(store.getDemands().length);
 
   useEffect(() => {
     const unsubAuth = subscribeAuth(user => setCurrentUser(user));
     const unsubStore = store.subscribe(() => {
       setContracts([...store.getContracts()]);
+      setPropertiesCount(store.getProperties().length);
+      setDemandsCount(store.getDemands().length);
     });
     const unsubscribe = navigation.addListener('focus', () => {
       setContracts([...store.getContracts()]);
+      setPropertiesCount(store.getProperties().length);
+      setDemandsCount(store.getDemands().length);
     });
     setContracts([...store.getContracts()]);
+    setPropertiesCount(store.getProperties().length);
+    setDemandsCount(store.getDemands().length);
     return () => {
       unsubAuth();
       unsubStore();
@@ -125,6 +133,57 @@ export const HomeScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
             <Ionicons name="add" size={28} color={COLORS.surface} />
           </View>
         </TouchableOpacity>
+
+        {/* CANLI KURUMSAL KPI METRİKLERİ */}
+        <View style={styles.kpiRow}>
+          <TouchableOpacity
+            activeOpacity={0.8}
+            style={styles.kpiCard}
+            onPress={() => setSelectedFilter('ALL')}
+          >
+            <View style={[styles.kpiIconWrap, { backgroundColor: '#EFF6FF' }]}>
+              <Ionicons name="document-text" size={16} color={COLORS.primary} />
+            </View>
+            <Text style={styles.kpiValue}>{contracts.length}</Text>
+            <Text style={styles.kpiLabel}>Sözleşmeler</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            activeOpacity={0.8}
+            style={styles.kpiCard}
+            onPress={() => navigation.navigate('PropertiesTab')}
+          >
+            <View style={[styles.kpiIconWrap, { backgroundColor: '#F5F3FF' }]}>
+              <Ionicons name="business" size={16} color={COLORS.violet} />
+            </View>
+            <Text style={styles.kpiValue}>{propertiesCount}</Text>
+            <Text style={styles.kpiLabel}>Portföyler</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            activeOpacity={0.8}
+            style={styles.kpiCard}
+            onPress={() => navigation.navigate('LeadsTab')}
+          >
+            <View style={[styles.kpiIconWrap, { backgroundColor: '#ECFDF5' }]}>
+              <Ionicons name="people" size={16} color="#059669" />
+            </View>
+            <Text style={styles.kpiValue}>{demandsCount}</Text>
+            <Text style={styles.kpiLabel}>Talepler</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            activeOpacity={0.8}
+            style={styles.kpiCard}
+            onPress={() => navigation.navigate('CalculatorTab')}
+          >
+            <View style={[styles.kpiIconWrap, { backgroundColor: '#FEF3C7' }]}>
+              <Ionicons name="calculator" size={16} color="#D97706" />
+            </View>
+            <Text style={styles.kpiValue}>%4</Text>
+            <Text style={styles.kpiLabel}>Tapu Harcı</Text>
+          </TouchableOpacity>
+        </View>
 
         {/* BROKER VEYA DANIŞMAN BANNERI */}
         {currentUser.role === 'YONETICI' ? (
@@ -401,8 +460,44 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: SPACING.lg,
+    marginBottom: 12,
     ...SHADOWS.primaryGlow,
+  },
+  kpiRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: SPACING.lg,
+  },
+  kpiCard: {
+    flex: 1,
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.md,
+    paddingVertical: 10,
+    paddingHorizontal: 8,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    ...SHADOWS.sm,
+  },
+  kpiIconWrap: {
+    width: 28,
+    height: 28,
+    borderRadius: RADIUS.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 4,
+  },
+  kpiValue: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: COLORS.text,
+  },
+  kpiLabel: {
+    fontSize: 9.5,
+    fontWeight: '600',
+    color: COLORS.textSecondary,
+    marginTop: 1,
+    textAlign: 'center',
   },
   heroLeft: {
     flex: 1,
