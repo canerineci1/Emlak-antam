@@ -66,7 +66,7 @@ export const LandingScreen: React.FC<LandingScreenProps> = ({ onStart, onLogin }
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-      <StatusBar barStyle="light-content" backgroundColor="#0F172A" />
+      <StatusBar barStyle="light-content" />
 
       {/* 1. ÜST HERO MARKALAMA & STATÜ BARI */}
       <View style={styles.heroHeader}>

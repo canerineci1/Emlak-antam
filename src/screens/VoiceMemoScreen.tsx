@@ -5,6 +5,7 @@ import { COLORS, SPACING, RADIUS, SHADOWS } from '../constants/theme';
 import { Header } from '../components/Header';
 import { Ionicons } from '@expo/vector-icons';
 import { WebView } from 'react-native-webview';
+const WebViewComponent: any = WebView;
 import { generateRealEstateSummary } from '../services/voiceAiService';
 import { getVoiceCrmRecords, saveVoiceCrmRecord, deleteVoiceCrmRecord, shareCrmReportViaWhatsApp, VoiceCrmRecord } from '../services/crmService';
 const GROQ_API_KEY = process.env.EXPO_PUBLIC_GROQ_API_KEY || '';
@@ -15,7 +16,7 @@ export const VoiceMemoScreen: React.FC<{ navigation: any }> = ({ navigation }) =
   const [crmRecords, setCrmRecords] = useState<VoiceCrmRecord[]>([]);
   const [selectedRecord, setSelectedRecord] = useState<VoiceCrmRecord | null>(null);
 
-  const webViewRef = useRef<WebView>(null);
+  const webViewRef = useRef<any>(null);
 
   useEffect(() => {
     loadCrmRecords();
@@ -408,7 +409,7 @@ export const VoiceMemoScreen: React.FC<{ navigation: any }> = ({ navigation }) =
 
           {/* 1. MİKROFON KARTI */}
           <View style={styles.micWebCard}>
-            <WebView
+            <WebViewComponent
               ref={webViewRef}
               originWhitelist={['*']}
               source={{ html: whisperBridgeHtml, baseUrl: 'https://emlakcantam.local' }}

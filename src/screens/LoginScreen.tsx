@@ -70,7 +70,7 @@ export const LoginScreen: React.FC<{
   const [isAuthenticatingToken, setIsAuthenticatingToken] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  const otpInputRefs = useRef<(TextInput | null)[]>([]);
+  const otpInputRefs = useRef<(any | null)[]>([]);
 
 
   // Firebase Bağlantısını Kontrol Et & Geri Sayım
@@ -286,7 +286,7 @@ export const LoginScreen: React.FC<{
 
   return (
     <View style={styles.mainContainer}>
-      <StatusBar barStyle="light-content" backgroundColor="#0F172A" />
+      <StatusBar barStyle="light-content" />
 
       {/* 1. RESPONSIVE HERO HEADER */}
       <View style={[styles.heroHeader, { paddingVertical: isSmallDevice ? SPACING.sm : SPACING.md }]}>

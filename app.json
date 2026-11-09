@@ -36,7 +36,9 @@
         }
       ],
       "expo-audio",
-      "expo-web-browser"
+      "expo-web-browser",
+      "expo-sharing",
+      "expo-status-bar"
     ],
     "extra": {
       "eas": {
