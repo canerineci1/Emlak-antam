@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, ActivityIndicator } from 'react-native';
+import { View, ActivityIndicator, StyleSheet, Platform } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -139,10 +139,12 @@ export default function App() {
       return (
         <SafeAreaProvider>
           <StatusBar style="light" />
-          <LoginScreen
-            onBackToLanding={() => setShowAuthScreen(false)}
-            onLoginSuccess={() => setShowAuthScreen(false)}
-          />
+          <RootFrame dark>
+            <LoginScreen
+              onBackToLanding={() => setShowAuthScreen(false)}
+              onLoginSuccess={() => setShowAuthScreen(false)}
+            />
+          </RootFrame>
         </SafeAreaProvider>
       );
     }
@@ -150,10 +152,12 @@ export default function App() {
     return (
       <SafeAreaProvider>
         <StatusBar style="light" />
-        <LandingScreen
-          onStart={() => setShowAuthScreen(true)}
-          onLogin={() => setShowAuthScreen(true)}
-        />
+        <RootFrame dark>
+          <LandingScreen
+            onStart={() => setShowAuthScreen(true)}
+            onLogin={() => setShowAuthScreen(true)}
+          />
+        </RootFrame>
       </SafeAreaProvider>
     );
   }
@@ -163,46 +167,78 @@ export default function App() {
     return (
       <SafeAreaProvider>
         <StatusBar style="dark" />
-        <OnboardingScreen
-          onComplete={() => {}}
-          onSkip={() => {}}
-        />
+        <RootFrame>
+          <OnboardingScreen
+            onComplete={() => {}}
+            onSkip={() => {}}
+          />
+        </RootFrame>
       </SafeAreaProvider>
     );
   }
 
   // 4. TAM KURULMUŞ OFİS VE ANA UYGULAMA PANELİ
-
   return (
     <SafeAreaProvider>
       <StatusBar style="dark" />
-      <NavigationContainer>
-        <Stack.Navigator
-          screenOptions={{
-            headerShown: false,
-            animation: 'slide_from_right',
-          }}
-        >
-          <Stack.Screen name="MainTabs" component={TabNavigator} />
-          <Stack.Screen name="NewContract" component={NewContractScreen} />
-          <Stack.Screen name="Signature" component={SignatureScreen} />
-          <Stack.Screen name="ContractDetail" component={ContractDetailScreen} />
-          <Stack.Screen name="AiCopywriter" component={AiCopywriterScreen} />
-          <Stack.Screen name="SmartMatch" component={SmartMatchScreen} />
-          <Stack.Screen name="Analytics" component={AnalyticsScreen} />
-          <Stack.Screen name="Calculator" component={CalculatorScreen} />
-          <Stack.Screen name="QrSign" component={QrSignScreen} />
-          <Stack.Screen name="RentIncrease" component={RentIncreaseScreen} />
-          <Stack.Screen name="Inventory" component={InventoryScreen} />
-          <Stack.Screen name="VoiceMemo" component={VoiceMemoScreen} />
-          <Stack.Screen name="DigitalCard" component={DigitalCardScreen} />
-          <Stack.Screen name="Eviction" component={EvictionScreen} />
-          <Stack.Screen name="Valuation" component={ValuationScreen} />
-          <Stack.Screen name="LeadHub" component={LeadHubScreen} />
-          <Stack.Screen name="TeamManagement" component={TeamManagementScreen} />
-          <Stack.Screen name="Profile" component={ProfileScreen} />
-        </Stack.Navigator>
-      </NavigationContainer>
+      <RootFrame>
+        <NavigationContainer>
+          <Stack.Navigator
+            screenOptions={{
+              headerShown: false,
+              animation: 'slide_from_right',
+            }}
+          >
+            <Stack.Screen name="MainTabs" component={TabNavigator} />
+            <Stack.Screen name="NewContract" component={NewContractScreen} />
+            <Stack.Screen name="Signature" component={SignatureScreen} />
+            <Stack.Screen name="ContractDetail" component={ContractDetailScreen} />
+            <Stack.Screen name="AiCopywriter" component={AiCopywriterScreen} />
+            <Stack.Screen name="SmartMatch" component={SmartMatchScreen} />
+            <Stack.Screen name="Analytics" component={AnalyticsScreen} />
+            <Stack.Screen name="Calculator" component={CalculatorScreen} />
+            <Stack.Screen name="QrSign" component={QrSignScreen} />
+            <Stack.Screen name="RentIncrease" component={RentIncreaseScreen} />
+            <Stack.Screen name="Inventory" component={InventoryScreen} />
+            <Stack.Screen name="VoiceMemo" component={VoiceMemoScreen} />
+            <Stack.Screen name="DigitalCard" component={DigitalCardScreen} />
+            <Stack.Screen name="Eviction" component={EvictionScreen} />
+            <Stack.Screen name="Valuation" component={ValuationScreen} />
+            <Stack.Screen name="LeadHub" component={LeadHubScreen} />
+            <Stack.Screen name="TeamManagement" component={TeamManagementScreen} />
+            <Stack.Screen name="Profile" component={ProfileScreen} />
+          </Stack.Navigator>
+        </NavigationContainer>
+      </RootFrame>
     </SafeAreaProvider>
   );
 }
+
+const RootFrame: React.FC<{ children: React.ReactNode; dark?: boolean }> = ({ children, dark }) => {
+  if (Platform.OS === 'web') {
+    return (
+      <View style={[appStyles.webRoot, dark && { backgroundColor: '#0B1120' }]}>
+        <View style={appStyles.webFrame}>
+          {children}
+        </View>
+      </View>
+    );
+  }
+  return <>{children}</>;
+};
+
+const appStyles = StyleSheet.create({
+  webRoot: {
+    flex: 1,
+    backgroundColor: '#0F172A',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  webFrame: {
+    width: '100%',
+    maxWidth: 480,
+    height: '100%',
+    backgroundColor: COLORS.background,
+    overflow: 'hidden',
+  },
+});
